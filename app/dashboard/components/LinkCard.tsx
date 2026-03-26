@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-interface Link {
+interface LinkItem {
   id: string;
   slug: string;
   originalUrl: string;
@@ -11,7 +11,7 @@ interface Link {
 }
 
 interface Props {
-  link: Link;
+  link: LinkItem;
   baseUrl: string;
   onDeleted: () => void;
 }
@@ -19,8 +19,9 @@ interface Props {
 export default function LinkCard({ link, baseUrl, onDeleted }: Props) {
   const [copied, setCopied] = useState(false);
   const [hovered, setHovered] = useState(false);
+
   const shortUrl = `${baseUrl}/${link.slug}`;
-  const displayShort = shortUrl.replace(/^https?:\/\//, "");
+  const domain = baseUrl.replace(/^https?:\/\//, "");
 
   async function handleCopy() {
     await navigator.clipboard.writeText(shortUrl);
@@ -34,7 +35,10 @@ export default function LinkCard({ link, baseUrl, onDeleted }: Props) {
     onDeleted();
   }
 
-  const date = new Date(link.createdAt).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
+  const date = new Date(link.createdAt).toLocaleDateString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+  });
 
   return (
     <div
@@ -43,7 +47,7 @@ export default function LinkCard({ link, baseUrl, onDeleted }: Props) {
         display: "flex",
         alignItems: "center",
         gap: "16px",
-        padding: "12px 16px",
+        padding: "14px 18px",
         background: hovered ? "var(--bg-subtle)" : "transparent",
         transition: "background 0.15s ease",
       }}
@@ -52,28 +56,40 @@ export default function LinkCard({ link, baseUrl, onDeleted }: Props) {
     >
       {/* URLs */}
       <div style={{ flex: 1, minWidth: 0 }}>
+        {/* Short URL — domain dim, slug prominent */}
         <a
           href={shortUrl}
           target="_blank"
           rel="noopener noreferrer"
           style={{
             display: "block",
-            fontSize: "13px",
-            fontWeight: 600,
-            fontFamily: "var(--font-geist-mono)",
-            color: "var(--accent)",
             textDecoration: "none",
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
-            letterSpacing: "-0.02em",
-            marginBottom: "2px",
+            marginBottom: "3px",
           }}
         >
-          {displayShort}
+          <span className="mono" style={{
+            fontSize: "12px",
+            color: "var(--text-tertiary)",
+            letterSpacing: "-0.01em",
+          }}>
+            {domain}/
+          </span>
+          <span className="mono" style={{
+            fontSize: "13px",
+            fontWeight: 700,
+            color: "var(--accent)",
+            letterSpacing: "-0.01em",
+          }}>
+            {link.slug}
+          </span>
         </a>
+
+        {/* Original URL */}
         <p style={{
-          fontSize: "11px",
+          fontSize: "12px",
           color: "var(--text-tertiary)",
           overflow: "hidden",
           textOverflow: "ellipsis",
@@ -84,29 +100,34 @@ export default function LinkCard({ link, baseUrl, onDeleted }: Props) {
       </div>
 
       {/* Clicks */}
-      <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: "4px" }}>
-        <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
-          <circle cx="6" cy="6" r="2.5" fill="var(--text-tertiary)" />
-          <path d="M6 1v1.5M6 9.5V11M1 6h1.5M9.5 6H11" stroke="var(--text-tertiary)" strokeWidth="1.2" strokeLinecap="round" />
+      <div style={{
+        flexShrink: 0,
+        display: "flex",
+        alignItems: "center",
+        gap: "5px",
+        padding: "3px 8px",
+        background: "var(--bg-muted)",
+        borderRadius: "5px",
+      }}>
+        <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+          <path d="M6 1C3.24 1 1 3.24 1 6s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zm0 2.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3z" fill="var(--text-tertiary)"/>
         </svg>
-        <span style={{
+        <span className="mono" style={{
           fontSize: "11px",
-          fontFamily: "var(--font-geist-mono)",
           color: "var(--text-secondary)",
-          tabularNums: "true",
-        } as React.CSSProperties}>
+          fontVariantNumeric: "tabular-nums",
+        }}>
           {link._count.clicks}
         </span>
       </div>
 
       {/* Date */}
-      <span style={{
+      <span className="mono" style={{
         fontSize: "11px",
         color: "var(--text-tertiary)",
-        fontFamily: "var(--font-geist-mono)",
         flexShrink: 0,
-        display: "none",
-      }} className="md:block">
+        display: window?.innerWidth > 480 ? "block" : "none",
+      }}>
         {date}
       </span>
 
@@ -114,33 +135,37 @@ export default function LinkCard({ link, baseUrl, onDeleted }: Props) {
       <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
         <button
           onClick={handleCopy}
+          className="mono"
           style={{
             padding: "4px 10px",
-            borderRadius: "5px",
-            border: copied ? "1px solid var(--accent-border)" : "1px solid var(--border-strong)",
+            borderRadius: "6px",
+            border: copied
+              ? "1px solid var(--accent-border)"
+              : "1px solid var(--border)",
             background: copied ? "var(--accent-subtle)" : "transparent",
             color: copied ? "var(--accent)" : "var(--text-tertiary)",
             fontSize: "11px",
             fontWeight: 500,
             cursor: "pointer",
             transition: "all 0.2s cubic-bezier(0.16,1,0.3,1)",
-            fontFamily: "var(--font-geist-mono)",
-            transform: copied ? "scale(0.96)" : "scale(1)",
+            transform: copied ? "scale(0.95)" : "scale(1)",
           }}
         >
           {copied ? "✓ copied" : "copy"}
         </button>
+
         <button
           onClick={handleDelete}
+          className="mono"
           style={{
             padding: "4px 8px",
-            borderRadius: "5px",
+            borderRadius: "6px",
             border: "1px solid transparent",
             background: "transparent",
             color: "var(--text-tertiary)",
             fontSize: "11px",
             cursor: "pointer",
-            transition: "color 0.15s",
+            transition: "color 0.15s, opacity 0.15s",
             opacity: hovered ? 1 : 0,
           }}
           onMouseEnter={e => (e.currentTarget.style.color = "var(--danger)")}

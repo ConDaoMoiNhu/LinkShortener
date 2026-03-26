@@ -36,18 +36,6 @@ export default function CreateLinkForm({ onCreated }: Props) {
     onCreated();
   }
 
-  const baseInput: React.CSSProperties = {
-    background: "var(--bg-muted)",
-    border: "1px solid var(--border-strong)",
-    color: "var(--text)",
-    borderRadius: "7px",
-    padding: "9px 12px",
-    fontSize: "13px",
-    outline: "none",
-    transition: "border-color 0.15s",
-    fontFamily: "var(--font-geist-sans)",
-  };
-
   return (
     <form onSubmit={handleSubmit}>
       <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
@@ -55,47 +43,48 @@ export default function CreateLinkForm({ onCreated }: Props) {
           type="url"
           value={url}
           onChange={e => setUrl(e.target.value)}
-          placeholder="https://example.com/duong-dan-dai"
+          placeholder="https://example.com/đường-dẫn-dài"
           required
-          style={{ ...baseInput, flex: "1 1 200px" }}
-          onFocus={e => (e.currentTarget.style.borderColor = "var(--accent)")}
-          onBlur={e => (e.currentTarget.style.borderColor = "var(--border-strong)")}
+          className="input-base"
+          style={{ flex: "1 1 200px" }}
         />
         <input
           type="text"
           value={alias}
           onChange={e => setAlias(e.target.value)}
           placeholder="alias (tuỳ chọn)"
-          style={{ ...baseInput, fontFamily: "var(--font-geist-mono)", width: "148px", flexShrink: 0 }}
-          onFocus={e => (e.currentTarget.style.borderColor = "var(--accent)")}
-          onBlur={e => (e.currentTarget.style.borderColor = "var(--border-strong)")}
+          className="input-base mono"
+          style={{ width: "148px", flexShrink: 0, flex: "none" }}
         />
         <button
           type="submit"
           disabled={loading}
+          className="btn-primary"
           style={{
-            background: "var(--accent)",
-            color: "#fff",
-            border: "none",
-            borderRadius: "7px",
-            padding: "9px 18px",
-            fontSize: "13px",
-            fontWeight: 600,
+            opacity: loading ? 0.65 : 1,
             cursor: loading ? "not-allowed" : "pointer",
-            opacity: loading ? 0.6 : 1,
-            whiteSpace: "nowrap",
             flexShrink: 0,
-            letterSpacing: "-0.01em",
-            transition: "opacity 0.15s",
+            transform: "none",
           }}
         >
-          {loading ? "..." : "Rút gọn →"}
+          {loading ? (
+            <span style={{ opacity: 0.8 }}>Đang tạo…</span>
+          ) : (
+            <>Rút gọn →</>
+          )}
         </button>
       </div>
 
       {error && (
-        <p style={{ marginTop: "8px", fontSize: "12px", color: "var(--danger)", fontFamily: "var(--font-geist-mono)" }}>
-          ✗ {error}
+        <p className="mono" style={{
+          marginTop: "10px",
+          fontSize: "12px",
+          color: "var(--danger)",
+          display: "flex",
+          alignItems: "center",
+          gap: "6px",
+        }}>
+          <span>✗</span> {error}
         </p>
       )}
     </form>

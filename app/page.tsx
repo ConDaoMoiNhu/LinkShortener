@@ -3,68 +3,41 @@ import Link from "next/link";
 export default function LandingPage() {
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg)" }}>
+
       {/* Nav */}
       <nav style={{
-        padding: "18px 32px",
+        padding: "0 32px",
+        height: "56px",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
         borderBottom: "1px solid var(--border)",
         position: "sticky",
         top: 0,
-        background: "rgba(10,10,10,0.85)",
-        backdropFilter: "blur(12px)",
+        background: "var(--bg)",
         zIndex: 50,
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <span style={{
-            fontFamily: "var(--font-geist-mono)",
-            fontWeight: 700,
-            fontSize: "16px",
-            color: "var(--accent)",
-            letterSpacing: "-0.03em",
-          }}>ls/</span>
+        <div className="display-font" style={{
+          fontSize: "18px",
+          fontWeight: 700,
+          color: "var(--accent)",
+          letterSpacing: "-0.04em",
+          fontStyle: "italic",
+        }}>
+          ls·
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <a
             href="https://github.com/ConDaoMoiNhu/LinkShortener"
             target="_blank"
             rel="noopener noreferrer"
-            className="nav-gh-link"
-            style={{ fontSize: "12px" }}
+            className="nav-link"
           >
             GitHub ↗
           </a>
-          <Link
-            href="/login"
-            prefetch={false}
-            style={{
-              fontSize: "12px",
-              fontWeight: 500,
-              color: "var(--text-secondary)",
-              textDecoration: "none",
-              padding: "6px 14px",
-              border: "1px solid var(--border-strong)",
-              borderRadius: "6px",
-            }}
-          >
+          <Link href="/login" prefetch={false} className="btn-ghost" style={{ padding: "6px 14px" }}>
             Đăng nhập
-          </Link>
-          <Link
-            href="/login"
-            prefetch={false}
-            style={{
-              fontSize: "12px",
-              fontWeight: 600,
-              color: "#fff",
-              textDecoration: "none",
-              padding: "6px 16px",
-              background: "var(--accent)",
-              borderRadius: "6px",
-              letterSpacing: "-0.01em",
-            }}
-          >
-            Dùng miễn phí →
           </Link>
         </div>
       </nav>
@@ -76,213 +49,171 @@ export default function LandingPage() {
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        padding: "80px 24px 96px",
+        padding: "72px 24px 96px",
         textAlign: "center",
-        position: "relative",
       }}>
-        {/* Dot grid bg */}
-        <div className="dot-grid" style={{
-          position: "absolute",
-          inset: 0,
-          opacity: 0.4,
-          maskImage: "radial-gradient(ellipse 80% 60% at 50% 40%, black 30%, transparent 100%)",
-          WebkitMaskImage: "radial-gradient(ellipse 80% 60% at 50% 40%, black 30%, transparent 100%)",
-          pointerEvents: "none",
-        }} />
 
-        <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center" }}>
-          {/* Badge */}
-          <div className="fade-up" style={{
-            display: "inline-flex",
+        {/* Eyebrow */}
+        <p className="fade-up mono" style={{
+          fontSize: "11px",
+          color: "var(--accent)",
+          letterSpacing: "0.1em",
+          textTransform: "uppercase",
+          marginBottom: "20px",
+          animationDelay: "0s",
+        }}>
+          miễn phí · không giới hạn
+        </p>
+
+        {/* Headline */}
+        <h1 className="fade-up display-font" style={{
+          fontSize: "clamp(2.8rem, 7vw, 5rem)",
+          fontWeight: 700,
+          fontStyle: "italic",
+          letterSpacing: "-0.03em",
+          lineHeight: 1.1,
+          color: "var(--text)",
+          marginBottom: "20px",
+          maxWidth: "560px",
+          animationDelay: "0.05s",
+        }}>
+          Rút gọn link,<br />
+          <span style={{ color: "var(--accent)" }}>không phức tạp.</span>
+        </h1>
+
+        {/* Sub */}
+        <p className="fade-up" style={{
+          fontSize: "15px",
+          color: "var(--text-secondary)",
+          maxWidth: "380px",
+          lineHeight: 1.75,
+          marginBottom: "44px",
+          animationDelay: "0.1s",
+        }}>
+          Dán đường dẫn dài, nhận link ngắn gọn tức thì.
+          Theo dõi lượt click, tạo QR code. Hoàn toàn miễn phí.
+        </p>
+
+        {/* CTA */}
+        <div className="fade-up" style={{ animationDelay: "0.15s", display: "flex", gap: "10px", flexWrap: "wrap", justifyContent: "center" }}>
+          <Link href="/login" prefetch={false} className="btn-primary">
+            Bắt đầu miễn phí →
+          </Link>
+        </div>
+
+        {/* Demo card */}
+        <div className="fade-up card" style={{
+          marginTop: "56px",
+          width: "100%",
+          maxWidth: "420px",
+          padding: "24px",
+          textAlign: "left",
+          animationDelay: "0.2s",
+        }}>
+          {/* Long URL row */}
+          <div style={{
+            display: "flex",
             alignItems: "center",
-            gap: "6px",
-            marginBottom: "28px",
-            padding: "4px 12px",
-            border: "1px solid var(--border-strong)",
-            borderRadius: "9999px",
-            background: "var(--bg-subtle)",
+            gap: "10px",
+            padding: "10px 14px",
+            background: "var(--bg-muted)",
+            borderRadius: "8px",
+            marginBottom: "12px",
           }}>
-            <span style={{
-              width: "6px",
-              height: "6px",
-              borderRadius: "50%",
-              background: "var(--accent)",
-              display: "inline-block",
-              animation: "pulse-glow 2s ease-in-out infinite",
-            }} />
-            <span style={{ fontSize: "11px", color: "var(--text-tertiary)", fontFamily: "var(--font-geist-mono)", letterSpacing: "0.04em" }}>
-              free · unlimited · instant
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+            </svg>
+            <span className="mono" style={{
+              fontSize: "11px",
+              color: "var(--text-tertiary)",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}>
+              https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms
             </span>
           </div>
 
-          {/* Headline */}
-          <h1 className="fade-up" style={{
-            fontSize: "clamp(3rem, 8vw, 5.5rem)",
-            fontWeight: 700,
-            letterSpacing: "-0.045em",
-            lineHeight: 1.05,
-            color: "var(--text)",
-            marginBottom: "20px",
-            maxWidth: "600px",
-            animationDelay: "0.05s",
-          }}>
-            Short links<br />
-            <span style={{ color: "var(--accent)" }}>that work.</span>
-          </h1>
-
-          {/* Subtext */}
-          <p className="fade-up" style={{
-            fontSize: "15px",
-            color: "var(--text-secondary)",
-            maxWidth: "360px",
-            lineHeight: 1.7,
-            marginBottom: "48px",
-            animationDelay: "0.1s",
-          }}>
-            Rút gọn URL trong một giây. Theo dõi click, tạo QR code. Miễn phí, không giới hạn.
-          </p>
-
-          {/* URL Demo Card */}
-          <div className="fade-up" style={{
-            width: "100%",
-            maxWidth: "460px",
-            background: "var(--bg-subtle)",
-            border: "1px solid var(--border-strong)",
-            borderRadius: "14px",
-            overflow: "hidden",
-            marginBottom: "36px",
-            animationDelay: "0.15s",
-          }}>
-            {/* Window chrome */}
-            <div style={{
-              padding: "10px 14px",
-              borderBottom: "1px solid var(--border)",
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-            }}>
-              <span style={{ width: "9px", height: "9px", borderRadius: "50%", background: "#ff5f57", display: "block" }} />
-              <span style={{ width: "9px", height: "9px", borderRadius: "50%", background: "#febc2e", display: "block" }} />
-              <span style={{ width: "9px", height: "9px", borderRadius: "50%", background: "#28c840", display: "block" }} />
-              <span style={{ flex: 1 }} />
-              <span style={{ fontSize: "10px", fontFamily: "var(--font-geist-mono)", color: "var(--text-tertiary)" }}>ls/ demo</span>
-            </div>
-
-            <div style={{ padding: "20px 22px" }}>
-              {/* Input URL */}
-              <div style={{
-                background: "var(--bg-muted)",
-                border: "1px solid var(--border-strong)",
-                borderRadius: "7px",
-                padding: "9px 12px",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                marginBottom: "14px",
-              }}>
-                <span style={{ fontSize: "10px", color: "var(--text-tertiary)", fontFamily: "var(--font-geist-mono)", flexShrink: 0 }}>URL</span>
-                <span style={{
-                  fontSize: "11px",
-                  fontFamily: "var(--font-geist-mono)",
-                  color: "var(--text-secondary)",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}>
-                  https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms
-                </span>
-              </div>
-
-              {/* Divider */}
-              <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "14px" }}>
-                <div style={{ flex: 1, height: "1px", background: "var(--border)" }} />
-                <span style={{ fontSize: "11px", color: "var(--text-tertiary)" }}>↓</span>
-                <div style={{ flex: 1, height: "1px", background: "var(--border)" }} />
-              </div>
-
-              {/* Short URL result */}
-              <div style={{
-                background: "var(--accent-subtle)",
-                border: "1px solid var(--accent-border)",
-                borderRadius: "7px",
-                padding: "12px 16px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}>
-                <span style={{
-                  fontSize: "14px",
-                  fontFamily: "var(--font-geist-mono)",
-                  fontWeight: 600,
-                  color: "var(--accent)",
-                  letterSpacing: "-0.02em",
-                }}>
-                  ls/docs23
-                </span>
-                <span style={{
-                  fontSize: "10px",
-                  color: "var(--accent)",
-                  background: "rgba(249,115,22,0.12)",
-                  padding: "3px 8px",
-                  borderRadius: "4px",
-                  fontFamily: "var(--font-geist-mono)",
-                }}>
-                  copied ✓
-                </span>
-              </div>
-            </div>
+          {/* Arrow */}
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
+            <div style={{ flex: 1, height: "1px", background: "var(--border)" }} />
+            <span style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>↓</span>
+            <div style={{ flex: 1, height: "1px", background: "var(--border)" }} />
           </div>
 
-          {/* CTA */}
-          <Link
-            href="/login"
-            prefetch={false}
-            className="fade-up"
-            style={{
-              fontSize: "13px",
-              fontWeight: 600,
-              color: "#fff",
-              textDecoration: "none",
-              padding: "11px 28px",
-              background: "var(--accent)",
-              borderRadius: "8px",
-              letterSpacing: "-0.01em",
-              animationDelay: "0.2s",
-              display: "inline-block",
-            }}
-          >
-            Bắt đầu miễn phí →
-          </Link>
-
-          {/* Stats row */}
-          <div className="fade-up" style={{
-            marginTop: "56px",
+          {/* Short URL */}
+          <div style={{
             display: "flex",
-            gap: "40px",
-            flexWrap: "wrap",
-            justifyContent: "center",
-            animationDelay: "0.25s",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "12px 16px",
+            background: "var(--accent-subtle)",
+            border: "1px solid var(--accent-border)",
+            borderRadius: "8px",
           }}>
-            {[
-              { n: "< 10ms", label: "edge latency" },
-              { n: "∞", label: "links & clicks" },
-              { n: "100%", label: "gratis" },
-              { n: "QR", label: "instant" },
-            ].map(f => (
-              <div key={f.label} style={{ textAlign: "center" }}>
-                <p style={{
-                  fontSize: "22px",
-                  fontWeight: 700,
-                  color: "var(--text)",
-                  letterSpacing: "-0.04em",
-                  lineHeight: 1,
-                  marginBottom: "4px",
-                  fontFamily: "var(--font-geist-mono)",
-                }}>{f.n}</p>
-                <p style={{ fontSize: "10px", color: "var(--text-tertiary)", letterSpacing: "0.04em", textTransform: "uppercase" }}>{f.label}</p>
-              </div>
-            ))}
+            <div>
+              <span className="mono" style={{
+                fontSize: "13px",
+                fontWeight: 700,
+                color: "var(--text-secondary)",
+                letterSpacing: "-0.01em",
+              }}>yourdomain.com/</span>
+              <span className="mono" style={{
+                fontSize: "13px",
+                fontWeight: 700,
+                color: "var(--accent)",
+                letterSpacing: "-0.01em",
+              }}>docs23</span>
+            </div>
+            <span style={{
+              fontSize: "10px",
+              color: "var(--accent)",
+              background: "var(--accent-subtle)",
+              border: "1px solid var(--accent-border)",
+              padding: "3px 8px",
+              borderRadius: "4px",
+              fontWeight: 600,
+              letterSpacing: "0.02em",
+            }}>
+              ✓ copied
+            </span>
           </div>
+        </div>
+
+        {/* Stats */}
+        <div className="fade-up" style={{
+          marginTop: "52px",
+          display: "flex",
+          gap: "48px",
+          flexWrap: "wrap",
+          justifyContent: "center",
+          animationDelay: "0.25s",
+        }}>
+          {[
+            { n: "< 10ms", label: "redirect time" },
+            { n: "∞", label: "links & clicks" },
+            { n: "QR", label: "codes built-in" },
+            { n: "100%", label: "gratis" },
+          ].map(f => (
+            <div key={f.label} style={{ textAlign: "center" }}>
+              <p className="display-font" style={{
+                fontSize: "24px",
+                fontWeight: 700,
+                fontStyle: "italic",
+                color: "var(--text)",
+                letterSpacing: "-0.03em",
+                lineHeight: 1,
+                marginBottom: "4px",
+              }}>{f.n}</p>
+              <p style={{
+                fontSize: "10px",
+                color: "var(--text-tertiary)",
+                letterSpacing: "0.06em",
+                textTransform: "uppercase",
+              }}>{f.label}</p>
+            </div>
+          ))}
         </div>
       </main>
 
@@ -293,7 +224,7 @@ export default function LandingPage() {
         alignItems: "center",
         justifyContent: "center",
       }}>
-        <p style={{ fontSize: "11px", color: "var(--text-tertiary)", fontFamily: "var(--font-geist-mono)" }}>
+        <p className="mono" style={{ fontSize: "11px", color: "var(--text-tertiary)" }}>
           © 2026 ls/ — built with Next.js & Vercel
         </p>
       </footer>
