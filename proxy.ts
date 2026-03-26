@@ -1,13 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
-import { kv } from "@vercel/kv";
 
 const SLUG_PREFIX = "slug:";
 
-export async function middleware(request: NextRequest) {
+async function getFromKV(slug: string): Promise<string | null> {
+  const KV_URL = process.env.KV_REST_API_URL;
+  const KV_TOKEN = process.env.KV_REST_API_TOKEN;
+
+  // Bỏ qua KV khi chạy local mà chưa có credentials
+  if (!KV_URL || !KV_TOKEN) return null;
+
+  try {
+    const res = await fetch(`${KV_URL}/get/${SLUG_PREFIX}${slug}`, {
+      headers: { Authorization: `Bearer ${KV_TOKEN}` },
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.result ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const slug = pathname.slice(1); // bỏ leading "/"
 
-  const url = await kv.get<string>(`${SLUG_PREFIX}${slug}`);
+  const url = await getFromKV(slug);
 
   if (url) {
     // Ghi nhận click (fire-and-forget, không block redirect)
