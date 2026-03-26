@@ -115,23 +115,36 @@ export default function DashboardClient({ user }: { user: User }) {
             { label: "Links", value: links.length },
             { label: "Clicks", value: totalClicks },
             { label: "Tuần này", value: thisWeek },
-          ].map(s => (
-            <div key={s.label} style={{
+          ].map((s, i) => (
+            <div key={s.label} className="fade-up" style={{
               padding: "16px 18px",
               background: "var(--bg-subtle)",
               border: "1px solid var(--border)",
               borderRadius: "10px",
-            }}>
+              transition: "border-color 0.2s, transform 0.2s",
+              animationDelay: `${i * 0.06}s`,
+              cursor: "default",
+            }}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLDivElement).style.borderColor = "var(--border-strong)";
+              (e.currentTarget as HTMLDivElement).style.transform = "translateY(-1px)";
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLDivElement).style.borderColor = "var(--border)";
+              (e.currentTarget as HTMLDivElement).style.transform = "translateY(0)";
+            }}
+            >
               <p style={{ fontSize: "11px", color: "var(--text-tertiary)", marginBottom: "6px", textTransform: "uppercase", letterSpacing: "0.06em" }}>
                 {s.label}
               </p>
-              <p style={{
+              <p className="stat-value" style={{
                 fontSize: "28px",
                 fontWeight: 700,
                 color: "var(--text)",
                 letterSpacing: "-0.04em",
                 lineHeight: 1,
                 fontFamily: "var(--font-geist-mono)",
+                animationDelay: `${i * 0.06 + 0.1}s`,
               }}>
                 {s.value}
               </p>

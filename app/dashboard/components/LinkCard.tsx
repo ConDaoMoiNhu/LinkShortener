@@ -38,13 +38,14 @@ export default function LinkCard({ link, baseUrl, onDeleted }: Props) {
 
   return (
     <div
+      className="link-row"
       style={{
         display: "flex",
         alignItems: "center",
         gap: "16px",
         padding: "12px 16px",
         background: hovered ? "var(--bg-subtle)" : "transparent",
-        transition: "background 0.12s",
+        transition: "background 0.15s ease",
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -122,11 +123,12 @@ export default function LinkCard({ link, baseUrl, onDeleted }: Props) {
             fontSize: "11px",
             fontWeight: 500,
             cursor: "pointer",
-            transition: "all 0.15s",
+            transition: "all 0.2s cubic-bezier(0.16,1,0.3,1)",
             fontFamily: "var(--font-geist-mono)",
+            transform: copied ? "scale(0.96)" : "scale(1)",
           }}
         >
-          {copied ? "✓" : "copy"}
+          {copied ? "✓ copied" : "copy"}
         </button>
         <button
           onClick={handleDelete}
