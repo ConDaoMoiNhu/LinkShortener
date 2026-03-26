@@ -33,6 +33,7 @@ model Account {
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+  @@index([userId])
 }
 
 model Session {
@@ -60,6 +61,8 @@ model Link {
   clicks      Click[]
   createdAt   DateTime  @default(now())
   expiresAt   DateTime?
+
+  @@index([userId])
 }
 
 model Click {
