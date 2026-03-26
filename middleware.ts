@@ -22,7 +22,7 @@ async function getFromKV(slug: string): Promise<string | null> {
   }
 }
 
-export async function proxy(request: NextRequest) {
+export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const slug = pathname.slice(1); // bỏ leading "/"
 
