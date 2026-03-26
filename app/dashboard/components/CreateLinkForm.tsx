@@ -36,39 +36,39 @@ export default function CreateLinkForm({ onCreated }: Props) {
     onCreated();
   }
 
-  const inputStyle = {
-    background: "var(--bg-subtle)",
-    border: "1px solid var(--border)",
+  const baseInput: React.CSSProperties = {
+    background: "var(--bg-muted)",
+    border: "1px solid var(--border-strong)",
     color: "var(--text)",
-    borderRadius: "6px",
-    padding: "8px 12px",
+    borderRadius: "7px",
+    padding: "9px 12px",
     fontSize: "13px",
-    width: "100%",
     outline: "none",
     transition: "border-color 0.15s",
+    fontFamily: "var(--font-geist-sans)",
   };
 
   return (
     <form onSubmit={handleSubmit}>
-      <div className="flex flex-col sm:flex-row gap-2">
+      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
         <input
           type="url"
           value={url}
-          onChange={(e) => setUrl(e.target.value)}
+          onChange={e => setUrl(e.target.value)}
           placeholder="https://example.com/duong-dan-dai"
           required
-          style={inputStyle}
-          onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
-          onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
+          style={{ ...baseInput, flex: "1 1 200px" }}
+          onFocus={e => (e.currentTarget.style.borderColor = "var(--accent)")}
+          onBlur={e => (e.currentTarget.style.borderColor = "var(--border-strong)")}
         />
         <input
           type="text"
           value={alias}
-          onChange={(e) => setAlias(e.target.value)}
+          onChange={e => setAlias(e.target.value)}
           placeholder="alias (tuỳ chọn)"
-          style={{ ...inputStyle, fontFamily: "var(--font-geist-mono)", width: "auto", minWidth: "140px" }}
-          onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
-          onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
+          style={{ ...baseInput, fontFamily: "var(--font-geist-mono)", width: "148px", flexShrink: 0 }}
+          onFocus={e => (e.currentTarget.style.borderColor = "var(--accent)")}
+          onBlur={e => (e.currentTarget.style.borderColor = "var(--border-strong)")}
         />
         <button
           type="submit"
@@ -77,23 +77,25 @@ export default function CreateLinkForm({ onCreated }: Props) {
             background: "var(--accent)",
             color: "#fff",
             border: "none",
-            borderRadius: "6px",
-            padding: "8px 16px",
+            borderRadius: "7px",
+            padding: "9px 18px",
             fontSize: "13px",
-            fontWeight: 500,
+            fontWeight: 600,
             cursor: loading ? "not-allowed" : "pointer",
             opacity: loading ? 0.6 : 1,
             whiteSpace: "nowrap",
             flexShrink: 0,
+            letterSpacing: "-0.01em",
+            transition: "opacity 0.15s",
           }}
         >
-          {loading ? "Đang tạo…" : "Rút gọn →"}
+          {loading ? "..." : "Rút gọn →"}
         </button>
       </div>
 
       {error && (
-        <p className="mt-2 text-xs" style={{ color: "var(--danger)" }}>
-          {error}
+        <p style={{ marginTop: "8px", fontSize: "12px", color: "var(--danger)", fontFamily: "var(--font-geist-mono)" }}>
+          ✗ {error}
         </p>
       )}
     </form>
