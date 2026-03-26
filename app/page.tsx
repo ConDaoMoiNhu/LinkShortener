@@ -30,9 +30,8 @@ export default function LandingPage() {
             href="https://github.com/ConDaoMoiNhu/LinkShortener"
             target="_blank"
             rel="noopener noreferrer"
-            style={{ fontSize: "12px", color: "var(--text-tertiary)", textDecoration: "none", transition: "color 0.15s" }}
-            onMouseEnter={e => (e.currentTarget.style.color = "var(--text-secondary)")}
-            onMouseLeave={e => (e.currentTarget.style.color = "var(--text-tertiary)")}
+            className="nav-gh-link"
+            style={{ fontSize: "12px" }}
           >
             GitHub ↗
           </a>

@@ -63,3 +63,12 @@ body {
   background-image: radial-gradient(circle, var(--border) 1px, transparent 1px);
   background-size: 28px 28px;
 }
+
+.nav-gh-link {
+  color: var(--text-tertiary);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.nav-gh-link:hover {
+  color: var(--text-secondary);
+}
