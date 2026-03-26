@@ -7,6 +7,7 @@ export default function LandingPage() {
         <span className="text-lg font-bold text-gray-900">LinkShort</span>
         <Link
           href="/dashboard"
+          prefetch={false}
           className="text-sm font-medium text-blue-600 hover:text-blue-700"
         >
           Dashboard →
@@ -24,6 +25,7 @@ export default function LandingPage() {
         <div className="mt-8 flex gap-3">
           <Link
             href="/dashboard"
+            prefetch={false}
             className="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition"
           >
             Bắt đầu miễn phí
