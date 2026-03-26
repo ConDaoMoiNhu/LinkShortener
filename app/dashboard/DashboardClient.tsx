@@ -31,7 +31,7 @@ export default function DashboardClient({ user }: { user: User }) {
   const fetchLinks = useCallback(async () => {
     const res = await fetch("/api/links");
     const data = await res.json();
-    setLinks(data);
+    setLinks(Array.isArray(data) ? data : []);
   }, []);
 
   useEffect(() => {
@@ -41,122 +41,119 @@ export default function DashboardClient({ user }: { user: User }) {
   const totalClicks = links.reduce((sum, l) => sum + l._count.clicks, 0);
 
   return (
-    <div className="min-h-screen bg-[#07070C] flex flex-col">
+    <div className="min-h-screen" style={{ background: "var(--bg)" }}>
       {/* Header */}
       <header
-        className="px-6 md:px-10 py-4 flex items-center justify-between border-b"
-        style={{ borderColor: "rgba(255,255,255,0.06)", background: "#07070C" }}
+        className="sticky top-0 z-10 flex items-center justify-between px-5 py-3 border-b"
+        style={{
+          background: "var(--bg)",
+          borderColor: "var(--border)",
+        }}
       >
-        <div className="flex items-center gap-2">
-          <span className="font-display text-base font-800" style={{ color: "#D4FF5C" }}>
-            LS
-          </span>
-          <span className="font-display text-base font-600 text-[#F0EEFF]">LinkShort</span>
+        <div className="flex items-center gap-1.5">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+            <rect width="20" height="20" rx="5" fill="var(--accent)" />
+            <path d="M6 10h8M10 6l4 4-4 4" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <span className="text-sm font-semibold" style={{ color: "var(--text)" }}>LinkShort</span>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="hidden sm:flex items-center gap-2">
-            {user.image && (
-              <img
-                src={user.image}
-                alt={user.name ?? ""}
-                className="w-7 h-7 rounded-full ring-1 ring-white/10"
-              />
-            )}
-            <span className="text-xs text-[#58566E]">{user.email}</span>
-          </div>
+        <div className="flex items-center gap-3">
+          {user.image && (
+            <img src={user.image} alt="" className="w-6 h-6 rounded-full" />
+          )}
+          <span className="hidden sm:block text-sm" style={{ color: "var(--text-secondary)" }}>
+            {user.name ?? user.email}
+          </span>
           <button
             onClick={() => signOut({ callbackUrl: "/" })}
-            className="text-xs px-3 py-1.5 rounded-lg text-[#58566E] hover:text-[#F0EEFF] border border-transparent hover:border-white/10 transition-all duration-200"
+            className="text-xs px-3 py-1.5 rounded-md border transition-colors"
+            style={{
+              color: "var(--text-secondary)",
+              borderColor: "var(--border)",
+              background: "transparent",
+            }}
           >
             Đăng xuất
           </button>
         </div>
       </header>
 
-      <main className="flex-1 max-w-3xl mx-auto w-full px-4 md:px-6 py-8 space-y-6">
-        {/* Stats bar */}
-        <div className="grid grid-cols-3 gap-3">
+      <main className="max-w-2xl mx-auto px-5 py-8">
+        {/* Stats */}
+        <div className="grid grid-cols-3 gap-3 mb-6">
           {[
             { label: "Tổng links", value: links.length },
             { label: "Tổng clicks", value: totalClicks },
-            { label: "Active", value: links.length },
-          ].map((stat) => (
+            { label: "Tuần này", value: links.filter(l => {
+              const d = new Date(l.createdAt);
+              return Date.now() - d.getTime() < 7 * 24 * 60 * 60 * 1000;
+            }).length },
+          ].map((s) => (
             <div
-              key={stat.label}
-              className="rounded-xl p-4 border"
-              style={{
-                background: "#0D0D16",
-                borderColor: "rgba(255,255,255,0.07)",
-              }}
+              key={s.label}
+              className="rounded-lg border px-4 py-3"
+              style={{ background: "var(--bg-subtle)", borderColor: "var(--border)" }}
             >
-              <p className="text-xs text-[#58566E] mb-1">{stat.label}</p>
-              <p className="font-display text-2xl font-700 text-[#F0EEFF]">
-                {stat.value}
-              </p>
+              <p className="text-xs mb-1" style={{ color: "var(--text-tertiary)" }}>{s.label}</p>
+              <p className="text-2xl font-bold tabular-nums" style={{ color: "var(--text)" }}>{s.value}</p>
             </div>
           ))}
         </div>
 
         {/* Create form */}
         <div
-          className="rounded-xl border overflow-hidden"
-          style={{
-            background: "#0D0D16",
-            borderColor: "rgba(255,255,255,0.07)",
-          }}
+          className="rounded-lg border mb-6 overflow-hidden"
+          style={{ borderColor: "var(--border)" }}
         >
           <div
-            className="px-5 py-4 border-b flex items-center gap-2"
-            style={{ borderColor: "rgba(255,255,255,0.06)" }}
+            className="px-4 py-3 border-b"
+            style={{
+              background: "var(--bg-subtle)",
+              borderColor: "var(--border)",
+            }}
           >
-            <span className="w-2 h-2 rounded-full" style={{ background: "#D4FF5C" }} />
-            <h2 className="font-display text-sm font-600 text-[#F0EEFF]">Tạo link mới</h2>
+            <h2 className="text-sm font-medium" style={{ color: "var(--text)" }}>
+              Tạo link mới
+            </h2>
           </div>
-          <div className="p-5">
+          <div className="p-4" style={{ background: "var(--bg)" }}>
             <CreateLinkForm onCreated={fetchLinks} />
           </div>
         </div>
 
-        {/* Links list */}
+        {/* Links */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-display text-sm font-600 text-[#F0EEFF]">Links của bạn</h2>
+            <h2 className="text-sm font-medium" style={{ color: "var(--text)" }}>
+              Links của bạn
+            </h2>
             {links.length > 0 && (
-              <span className="text-xs text-[#58566E]">{links.length} link</span>
+              <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>
+                {links.length} link
+              </span>
             )}
           </div>
 
           {links.length === 0 ? (
             <div
-              className="rounded-xl border p-12 flex flex-col items-center justify-center text-center"
-              style={{
-                background: "#0D0D16",
-                borderColor: "rgba(255,255,255,0.05)",
-                borderStyle: "dashed",
-              }}
+              className="rounded-lg border border-dashed p-10 text-center"
+              style={{ borderColor: "var(--border)" }}
             >
-              <div
-                className="w-12 h-12 rounded-xl flex items-center justify-center mb-4"
-                style={{ background: "rgba(212,255,92,0.08)" }}
-              >
-                <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#D4FF5C" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
-                </svg>
-              </div>
-              <p className="text-sm font-medium text-[#F0EEFF]/60">Chưa có link nào</p>
-              <p className="text-xs text-[#58566E] mt-1">Tạo link đầu tiên của bạn ở trên</p>
+              <p className="text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>
+                Chưa có link nào
+              </p>
+              <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>
+                Tạo link đầu tiên của bạn ở trên
+              </p>
             </div>
           ) : (
-            <div className="space-y-2">
-              {links.map((link, i) => (
-                <div
-                  key={link.id}
-                  className="animate-fade-up"
-                  style={{ animationDelay: `${i * 0.05}s` }}
-                >
-                  <LinkCard link={link} baseUrl={baseUrl} onDeleted={fetchLinks} />
-                </div>
+            <div
+              className="rounded-lg border overflow-hidden divide-y"
+              style={{ borderColor: "var(--border)" }}
+            >
+              {links.map((link) => (
+                <LinkCard key={link.id} link={link} baseUrl={baseUrl} onDeleted={fetchLinks} />
               ))}
             </div>
           )}

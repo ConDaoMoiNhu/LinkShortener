@@ -2,112 +2,131 @@ import Link from "next/link";
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-[#07070C] flex flex-col overflow-hidden">
-      {/* Background glow blobs */}
-      <div
-        className="fixed top-[-200px] left-[-100px] w-[600px] h-[600px] rounded-full pointer-events-none"
-        style={{
-          background: "radial-gradient(circle, rgba(212,255,92,0.06) 0%, transparent 70%)",
-        }}
-      />
-      <div
-        className="fixed bottom-[-200px] right-[-100px] w-[500px] h-[500px] rounded-full pointer-events-none"
-        style={{
-          background: "radial-gradient(circle, rgba(212,255,92,0.04) 0%, transparent 70%)",
-        }}
-      />
-
+    <div className="min-h-screen flex flex-col" style={{ background: "var(--bg)" }}>
       {/* Nav */}
-      <header className="relative z-10 px-6 md:px-10 py-5 flex items-center justify-between border-b border-white/[0.06]">
-        <div className="flex items-center gap-2">
-          <span
-            className="font-display text-base font-700 tracking-tight"
-            style={{ color: "#D4FF5C" }}
-          >
-            LS
-          </span>
-          <span className="font-display text-base font-600 text-[#F0EEFF]">
+      <header
+        className="px-6 py-4 flex items-center justify-between border-b"
+        style={{ borderColor: "var(--border)" }}
+      >
+        <div className="flex items-center gap-1.5">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <rect width="20" height="20" rx="5" fill="var(--accent)" />
+            <path d="M6 10h8M10 6l4 4-4 4" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          <span className="text-sm font-semibold" style={{ color: "var(--text)" }}>
             LinkShort
           </span>
         </div>
-        <Link
-          href="/dashboard"
-          prefetch={false}
-          className="text-xs font-medium px-4 py-2 rounded-full border border-white/10 text-[#F0EEFF]/60 hover:text-[#F0EEFF] hover:border-white/20 transition-all duration-200"
-        >
-          Dashboard →
-        </Link>
-      </header>
-
-      {/* Hero */}
-      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 text-center">
-        {/* Badge */}
-        <div className="animate-fade-up mb-8 inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#D4FF5C]/20 bg-[#D4FF5C]/[0.06]">
-          <span
-            className="w-1.5 h-1.5 rounded-full animate-pulse"
-            style={{ background: "#D4FF5C" }}
-          />
-          <span className="text-xs font-medium" style={{ color: "#D4FF5C" }}>
-            Miễn phí 100% · Không giới hạn
-          </span>
-        </div>
-
-        {/* Headline */}
-        <h1 className="animate-fade-up-delay-1 font-display text-[clamp(3rem,10vw,7rem)] font-800 leading-[0.92] tracking-[-0.03em] text-[#F0EEFF] max-w-4xl">
-          Rút gọn link.
-          <br />
-          <span style={{ color: "#D4FF5C" }}>Cực nhanh.</span>
-        </h1>
-
-        <p className="animate-fade-up-delay-2 mt-6 text-[#58566E] text-base md:text-lg max-w-md leading-relaxed">
-          Redirect tại Edge CDN — không qua server.
-          <br />
-          Analytics thời gian thực. QR code tức thì.
-        </p>
-
-        {/* CTA */}
-        <div className="animate-fade-up-delay-3 mt-10 flex items-center gap-3">
+        <nav className="flex items-center gap-4">
+          <Link
+            href="/login"
+            className="text-sm transition-colors"
+            style={{ color: "var(--text-secondary)" }}
+            prefetch={false}
+          >
+            Đăng nhập
+          </Link>
           <Link
             href="/dashboard"
             prefetch={false}
-            className="group relative px-6 py-3 rounded-xl font-display font-600 text-sm text-[#07070C] overflow-hidden transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
-            style={{ background: "#D4FF5C" }}
+            className="text-sm font-medium px-3.5 py-1.5 rounded-lg transition-colors"
+            style={{
+              background: "var(--accent)",
+              color: "#fff",
+            }}
           >
-            <span className="relative z-10">Bắt đầu miễn phí →</span>
+            Bắt đầu miễn phí
+          </Link>
+        </nav>
+      </header>
+
+      {/* Hero */}
+      <main className="flex-1 flex flex-col items-center justify-center px-6 py-24 text-center">
+        <div
+          className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium mb-8 border"
+          style={{
+            background: "var(--accent-subtle)",
+            color: "var(--accent)",
+            borderColor: "transparent",
+          }}
+        >
+          Miễn phí · Không giới hạn · Không cần thẻ
+        </div>
+
+        <h1
+          className="text-5xl sm:text-6xl font-bold tracking-tight max-w-2xl leading-tight"
+          style={{ color: "var(--text)" }}
+        >
+          Rút gọn link.{" "}
+          <span style={{ color: "var(--accent)" }}>Cực nhanh.</span>
+        </h1>
+
+        <p
+          className="mt-5 text-base max-w-md leading-relaxed"
+          style={{ color: "var(--text-secondary)" }}
+        >
+          Redirect tại Edge CDN — không qua server. Analytics thời gian thực.
+          QR code tức thì. Miễn phí 100%.
+        </p>
+
+        <div className="mt-8 flex items-center gap-3">
+          <Link
+            href="/dashboard"
+            prefetch={false}
+            className="px-5 py-2.5 rounded-lg text-sm font-medium transition-colors"
+            style={{ background: "var(--accent)", color: "#fff" }}
+          >
+            Bắt đầu miễn phí →
           </Link>
           <a
             href="https://github.com/ConDaoMoiNhu/LinkShortener"
             target="_blank"
             rel="noopener noreferrer"
-            className="px-6 py-3 rounded-xl font-display font-500 text-sm text-[#F0EEFF]/50 border border-white/[0.08] hover:text-[#F0EEFF]/80 hover:border-white/[0.15] transition-all duration-200"
+            className="px-5 py-2.5 rounded-lg text-sm font-medium border transition-colors"
+            style={{
+              color: "var(--text-secondary)",
+              borderColor: "var(--border)",
+              background: "var(--bg)",
+            }}
           >
             GitHub
           </a>
         </div>
 
-        {/* Feature pills */}
-        <div className="animate-fade-up-delay-3 mt-16 flex flex-wrap justify-center gap-2">
+        {/* Feature grid */}
+        <div className="mt-20 grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-2xl w-full">
           {[
-            "⚡ Edge Redirect",
-            "📊 Click Analytics",
-            "🔗 Custom Alias",
-            "📱 QR Code",
-            "🔐 OAuth Login",
+            { icon: "⚡", label: "Edge Redirect", desc: "Không qua server" },
+            { icon: "📊", label: "Analytics", desc: "Click theo thời gian thực" },
+            { icon: "🔗", label: "Custom Alias", desc: "Slug tuỳ chỉnh" },
+            { icon: "📱", label: "QR Code", desc: "Tạo ngay tức thì" },
           ].map((f) => (
-            <span
-              key={f}
-              className="px-3 py-1.5 rounded-lg text-xs text-[#58566E] border border-white/[0.06] bg-white/[0.02]"
+            <div
+              key={f.label}
+              className="p-4 rounded-xl border text-left"
+              style={{
+                background: "var(--bg-subtle)",
+                borderColor: "var(--border)",
+              }}
             >
-              {f}
-            </span>
+              <div className="text-lg mb-2">{f.icon}</div>
+              <p className="text-xs font-semibold" style={{ color: "var(--text)" }}>
+                {f.label}
+              </p>
+              <p className="text-xs mt-0.5" style={{ color: "var(--text-tertiary)" }}>
+                {f.desc}
+              </p>
+            </div>
           ))}
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="relative z-10 px-6 py-5 flex items-center justify-center border-t border-white/[0.04]">
-        <p className="text-xs text-[#2E2E42]">
-          © 2026 LinkShort — Built with Next.js + Vercel
+      <footer
+        className="border-t px-6 py-4 flex items-center justify-center"
+        style={{ borderColor: "var(--border)" }}
+      >
+        <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>
+          © 2026 LinkShort — Built with Next.js & Vercel
         </p>
       </footer>
     </div>
