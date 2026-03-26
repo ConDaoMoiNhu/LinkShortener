@@ -45,7 +45,7 @@
 - Create: `package.json`, `tsconfig.json`, `tailwind.config.ts`, `next.config.ts`
 - Create: `.env.local.example`
 
-- [ ] **Step 1: Khởi tạo Next.js project**
+- [x] **Step 1: Khởi tạo Next.js project**
 
 ```bash
 cd C:/Users/ADMIN/Downloads
@@ -53,14 +53,14 @@ npx create-next-app@latest link-shortener --typescript --tailwind --eslint --app
 cd link-shortener
 ```
 
-- [ ] **Step 2: Cài dependencies**
+- [x] **Step 2: Cài dependencies**
 
 ```bash
 npm install prisma @prisma/client @vercel/kv next-auth @auth/prisma-adapter nanoid zod qrcode
 npm install -D vitest @vitejs/plugin-react @types/qrcode vitest-environment-miniflare
 ```
 
-- [ ] **Step 3: Tạo file `.env.local.example`**
+- [x] **Step 3: Tạo file `.env.local.example`**
 
 ```env
 DATABASE_URL=postgresql://user:password@localhost:5432/linkshortener
@@ -74,13 +74,13 @@ KV_REST_API_URL=
 KV_REST_API_TOKEN=
 ```
 
-- [ ] **Step 4: Copy thành `.env.local` và điền giá trị local**
+- [x] **Step 4: Copy thành `.env.local` và điền giá trị local**
 
 ```bash
 cp .env.local.example .env.local
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add .
@@ -95,13 +95,13 @@ git commit -m "chore: init Next.js project with dependencies"
 - Create: `prisma/schema.prisma`
 - Create: `lib/db.ts`
 
-- [ ] **Step 1: Khởi tạo Prisma**
+- [x] **Step 1: Khởi tạo Prisma**
 
 ```bash
 npx prisma init --datasource-provider postgresql
 ```
 
-- [ ] **Step 2: Viết schema tại `prisma/schema.prisma`**
+- [x] **Step 2: Viết schema tại `prisma/schema.prisma`**
 
 ```prisma
 generator client {
@@ -179,7 +179,7 @@ model Click {
 }
 ```
 
-- [ ] **Step 3: Tạo `lib/db.ts`**
+- [x] **Step 3: Tạo `lib/db.ts`**
 
 ```typescript
 import { PrismaClient } from "@prisma/client";
@@ -197,19 +197,19 @@ export const db =
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = db;
 ```
 
-- [ ] **Step 4: Chạy migration**
+- [ ] **Step 4: Chạy migration** *(cần DB live — skip local, chạy khi có PostgreSQL)*
 
 ```bash
 npx prisma migrate dev --name init
 ```
 
-- [ ] **Step 5: Generate Prisma client**
+- [x] **Step 5: Generate Prisma client**
 
 ```bash
 npx prisma generate
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add prisma/ lib/db.ts
