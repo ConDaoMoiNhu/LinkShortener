@@ -23,29 +23,34 @@ async function getFromKV(slug: string): Promise<string | null> {
 }
 
 export default async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-  const slug = pathname.slice(1); // bỏ leading "/"
+  try {
+    const { pathname } = request.nextUrl;
+    const slug = pathname.slice(1); // bỏ leading "/"
 
-  const url = await getFromKV(slug);
+    // Skip empty slug (root path)
+    if (!slug) return NextResponse.next();
 
-  if (url) {
-    // Ghi nhận click (fire-and-forget, không block redirect)
-    // Phải dùng absolute URL vì Edge Runtime không hỗ trợ relative fetch
-    const clickUrl = new URL(`/api/analytics/click/${slug}`, request.url);
+    const url = await getFromKV(slug);
 
-    fetch(clickUrl.toString(), {
-      method: "POST",
-      headers: {
-        "x-forwarded-for": request.headers.get("x-forwarded-for") ?? "",
-        "user-agent": request.headers.get("user-agent") ?? "",
-        "x-vercel-ip-country": request.headers.get("x-vercel-ip-country") ?? "",
-      },
-    }).catch(() => {}); // ignore errors
+    if (url) {
+      // Ghi nhận click (fire-and-forget, không block redirect)
+      const clickUrl = new URL(`/api/analytics/click/${slug}`, request.url);
+      fetch(clickUrl.toString(), {
+        method: "POST",
+        headers: {
+          "x-forwarded-for": request.headers.get("x-forwarded-for") ?? "",
+          "user-agent": request.headers.get("user-agent") ?? "",
+          "x-vercel-ip-country": request.headers.get("x-vercel-ip-country") ?? "",
+        },
+      }).catch(() => {});
 
-    return NextResponse.redirect(url, { status: 301 });
+      return NextResponse.redirect(url, { status: 301 });
+    }
+  } catch {
+    // Middleware lỗi → fallthrough, không block request
   }
 
-  // KV miss → fallback về Next.js app/[slug]/page.tsx
+  // KV miss hoặc lỗi → fallback về Next.js
   return NextResponse.next();
 }
 
