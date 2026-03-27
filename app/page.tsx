@@ -53,12 +53,11 @@ export default function LandingPage() {
         <p className="fade-up mono" style={{
           fontSize: "11px",
           color: "var(--accent)",
-          letterSpacing: "0.1em",
-          textTransform: "uppercase",
+          letterSpacing: "0.06em",
           marginBottom: "20px",
           animationDelay: "0s",
         }}>
-          miễn phí · không giới hạn
+          Miễn phí · Không giới hạn
         </p>
 
         {/* Headline */}
