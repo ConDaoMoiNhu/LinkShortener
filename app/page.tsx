@@ -1,6 +1,45 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 
 export default function LandingPage() {
+  const [url, setUrl] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleShorten(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    setResult(null);
+
+    const res = await fetch("/api/links", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ originalUrl: url }),
+    });
+
+    const data = await res.json();
+    setLoading(false);
+
+    if (!res.ok) {
+      setError("URL không hợp lệ hoặc có lỗi xảy ra");
+      return;
+    }
+
+    setResult(`${window.location.origin}/${data.slug}`);
+  }
+
+  async function handleCopy() {
+    if (!result) return;
+    await navigator.clipboard.writeText(result);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg)" }}>
 
@@ -32,8 +71,8 @@ export default function LandingPage() {
           >
             GitHub ↗
           </a>
-          <Link href="/login" prefetch={false} className="btn-ghost" style={{ padding: "6px 14px" }}>
-            Đăng nhập
+          <Link href="/dashboard" prefetch={false} className="btn-ghost" style={{ padding: "6px 14px" }}>
+            Dashboard
           </Link>
         </div>
       </nav>
@@ -50,7 +89,7 @@ export default function LandingPage() {
       }}>
 
         {/* Eyebrow */}
-        <p className="fade-up mono" style={{
+        <p className="fade-up" style={{
           fontSize: "11px",
           color: "var(--accent)",
           letterSpacing: "0.06em",
@@ -89,96 +128,108 @@ export default function LandingPage() {
           Theo dõi lượt click, tạo QR code. Hoàn toàn miễn phí.
         </p>
 
-        {/* CTA */}
-        <div className="fade-up" style={{ animationDelay: "0.15s", display: "flex", gap: "10px", flexWrap: "wrap", justifyContent: "center" }}>
-          <Link href="/login" prefetch={false} className="btn-primary">
-            Bắt đầu miễn phí →
-          </Link>
-        </div>
-
-        {/* Demo card */}
-        <div className="fade-up card" style={{
-          marginTop: "56px",
+        {/* Shortener form */}
+        <div className="fade-up" style={{
           width: "100%",
-          maxWidth: "420px",
-          padding: "24px",
-          textAlign: "left",
-          animationDelay: "0.2s",
+          maxWidth: "520px",
+          animationDelay: "0.15s",
         }}>
-          {/* Long URL row */}
-          <div style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-            padding: "10px 14px",
-            background: "var(--bg-muted)",
-            borderRadius: "8px",
-            marginBottom: "12px",
-          }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2">
-              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-            </svg>
-            <span className="mono" style={{
-              fontSize: "11px",
-              color: "var(--text-tertiary)",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
+          {!result ? (
+            <form onSubmit={handleShorten} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <input
+                  type="url"
+                  value={url}
+                  onChange={e => setUrl(e.target.value)}
+                  placeholder="https://đường-dẫn-rất-dài-của-bạn.com/..."
+                  required
+                  className="input-base"
+                  style={{ flex: 1, fontSize: "15px", padding: "14px 18px" }}
+                />
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="liquid-gradient"
+                  style={{
+                    padding: "14px 24px", borderRadius: "12px", border: "none",
+                    color: "#000", fontSize: "14px", fontWeight: 700,
+                    cursor: loading ? "not-allowed" : "pointer",
+                    opacity: loading ? 0.7 : 1,
+                    whiteSpace: "nowrap",
+                    fontFamily: "inherit",
+                    transition: "filter 0.2s",
+                  }}
+                  onMouseEnter={e => { if (!loading) e.currentTarget.style.filter = "brightness(1.1)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.filter = "brightness(1)"; }}
+                >
+                  {loading ? "…" : "Rút gọn →"}
+                </button>
+              </div>
+              {error && (
+                <p style={{ fontSize: "13px", color: "#ff6e84", textAlign: "left" }}>✗ {error}</p>
+              )}
+              <p style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>
+                Không cần đăng ký.{" "}
+                <Link href="/login" prefetch={false} style={{ color: "var(--accent)", textDecoration: "none" }}>
+                  Đăng nhập
+                </Link>{" "}
+                để quản lý links.
+              </p>
+            </form>
+          ) : (
+            <div className="scale-in" style={{
+              background: "#19191c",
+              border: "1px solid rgba(189,157,255,0.2)",
+              borderRadius: "16px",
+              padding: "24px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "16px",
+              boxShadow: "0 0 40px rgba(189,157,255,0.08)",
             }}>
-              https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms
-            </span>
-          </div>
-
-          {/* Arrow */}
-          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
-            <div style={{ flex: 1, height: "1px", background: "var(--border)" }} />
-            <span style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>↓</span>
-            <div style={{ flex: 1, height: "1px", background: "var(--border)" }} />
-          </div>
-
-          {/* Short URL */}
-          <div style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "12px 16px",
-            background: "var(--accent-subtle)",
-            border: "1px solid var(--accent-border)",
-            borderRadius: "8px",
-          }}>
-            <div>
-              <span className="mono" style={{
-                fontSize: "13px",
-                fontWeight: 700,
-                color: "var(--text-secondary)",
-                letterSpacing: "-0.01em",
-              }}>yourdomain.com/</span>
-              <span className="mono" style={{
-                fontSize: "13px",
-                fontWeight: 700,
-                color: "var(--accent)",
-                letterSpacing: "-0.01em",
-              }}>docs23</span>
+              <div style={{ textAlign: "left", minWidth: 0 }}>
+                <p style={{ fontSize: "11px", color: "var(--text-tertiary)", marginBottom: "6px" }}>Link đã rút gọn</p>
+                <p style={{
+                  fontSize: "16px", fontWeight: 700, color: "#bd9dff",
+                  letterSpacing: "-0.02em",
+                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                }}>{result}</p>
+              </div>
+              <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>
+                <button
+                  onClick={handleCopy}
+                  style={{
+                    padding: "10px 18px", borderRadius: "10px", border: "none",
+                    background: copied ? "rgba(189,157,255,0.15)" : "#2c2c2f",
+                    color: copied ? "#bd9dff" : "#f9f5f8",
+                    fontSize: "13px", fontWeight: 600, cursor: "pointer",
+                    transition: "all 0.2s", fontFamily: "inherit",
+                  }}
+                >
+                  {copied ? "✓ Đã copy" : "Copy"}
+                </button>
+                <button
+                  onClick={() => { setResult(null); setUrl(""); }}
+                  style={{
+                    padding: "10px 18px", borderRadius: "10px", border: "none",
+                    background: "#2c2c2f", color: "#adaaad",
+                    fontSize: "13px", fontWeight: 600, cursor: "pointer",
+                    fontFamily: "inherit", transition: "background 0.2s",
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.background = "#1f1f22")}
+                  onMouseLeave={e => (e.currentTarget.style.background = "#2c2c2f")}
+                >
+                  Rút gọn link khác
+                </button>
+              </div>
             </div>
-            <span style={{
-              fontSize: "10px",
-              color: "var(--accent)",
-              background: "var(--accent-subtle)",
-              border: "1px solid var(--accent-border)",
-              padding: "3px 8px",
-              borderRadius: "4px",
-              fontWeight: 600,
-              letterSpacing: "0.02em",
-            }}>
-              ✓ copied
-            </span>
-          </div>
+          )}
         </div>
 
         {/* Stats */}
         <div className="fade-up" style={{
-          marginTop: "52px",
+          marginTop: "64px",
           display: "flex",
           gap: "48px",
           flexWrap: "wrap",
@@ -188,24 +239,18 @@ export default function LandingPage() {
           {[
             { n: "< 10ms", label: "redirect time" },
             { n: "∞", label: "links & clicks" },
-            { n: "QR", label: "codes built-in" },
-            { n: "100%", label: "gratis" },
+            { n: "QR", label: "built-in" },
+            { n: "100%", label: "miễn phí" },
           ].map(f => (
             <div key={f.label} style={{ textAlign: "center" }}>
               <p className="display-font" style={{
-                fontSize: "24px",
-                fontWeight: 700,
-                fontStyle: "italic",
-                color: "var(--text)",
-                letterSpacing: "-0.03em",
-                lineHeight: 1,
-                marginBottom: "4px",
+                fontSize: "24px", fontWeight: 700, fontStyle: "italic",
+                color: "var(--text)", letterSpacing: "-0.03em",
+                lineHeight: 1, marginBottom: "4px",
               }}>{f.n}</p>
               <p style={{
-                fontSize: "10px",
-                color: "var(--text-tertiary)",
+                fontSize: "10px", color: "var(--text-tertiary)",
                 letterSpacing: "0.06em",
-                textTransform: "uppercase",
               }}>{f.label}</p>
             </div>
           ))}
@@ -219,7 +264,7 @@ export default function LandingPage() {
         alignItems: "center",
         justifyContent: "center",
       }}>
-        <p className="mono" style={{ fontSize: "11px", color: "var(--text-tertiary)" }}>
+        <p style={{ fontSize: "11px", color: "var(--text-tertiary)", fontFamily: "inherit" }}>
           © 2026 ls/ — built with Next.js & Vercel
         </p>
       </footer>
