@@ -38,140 +38,120 @@ export default function LinkCard({ link, baseUrl, onDeleted }: Props) {
   const date = new Date(link.createdAt).toLocaleDateString("vi-VN", {
     day: "2-digit",
     month: "2-digit",
+    year: "numeric",
   });
 
   return (
     <div
       className="link-row"
       style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "16px",
-        padding: "14px 18px",
-        background: hovered ? "var(--bg-subtle)" : "transparent",
-        transition: "background 0.15s ease",
+        display: "flex", alignItems: "center", gap: "16px",
+        padding: "18px 20px", borderRadius: "14px",
+        background: hovered ? "#1f1f22" : "#19191c",
+        border: hovered ? "1px solid rgba(189,157,255,0.25)" : "1px solid rgba(72,71,74,0.1)",
+        transform: hovered ? "scale(1.005)" : "scale(1)",
+        transition: "all 0.25s cubic-bezier(0.4,0,0.2,1)",
+        cursor: "default",
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      {/* URLs */}
+      {/* URL info */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        {/* Short URL — domain dim, slug prominent */}
-        <a
-          href={shortUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            display: "block",
-            textDecoration: "none",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-            marginBottom: "3px",
-          }}
-        >
-          <span className="mono" style={{
-            fontSize: "12px",
-            color: "var(--text-tertiary)",
-            letterSpacing: "-0.01em",
-          }}>
-            {domain}/
-          </span>
-          <span className="mono" style={{
-            fontSize: "13px",
-            fontWeight: 700,
-            color: "var(--accent)",
-            letterSpacing: "-0.01em",
-          }}>
-            {link.slug}
-          </span>
-        </a>
-
-        {/* Original URL */}
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
+          <a
+            href={shortUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              textDecoration: "none", overflow: "hidden",
+              textOverflow: "ellipsis", whiteSpace: "nowrap",
+              fontSize: "15px", fontWeight: 700, letterSpacing: "-0.02em",
+              color: "#f9f5f8",
+              display: "block",
+            }}
+          >
+            <span style={{ color: "rgba(249,245,248,0.35)", fontWeight: 400 }}>{domain}/</span>
+            <span style={{ color: "#bd9dff" }}>{link.slug}</span>
+          </a>
+        </div>
         <p style={{
-          fontSize: "12px",
-          color: "var(--text-tertiary)",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
+          fontSize: "12px", color: "rgba(173,170,173,0.5)",
+          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
         }}>
           {link.originalUrl}
         </p>
       </div>
 
-      {/* Clicks */}
+      {/* Stats */}
       <div style={{
-        flexShrink: 0,
-        display: "flex",
-        alignItems: "center",
-        gap: "5px",
-        padding: "3px 8px",
-        background: "var(--bg-muted)",
-        borderRadius: "5px",
-      }}>
-        <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-          <path d="M6 1C3.24 1 1 3.24 1 6s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zm0 2.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3z" fill="var(--text-tertiary)"/>
-        </svg>
-        <span className="mono" style={{
-          fontSize: "11px",
-          color: "var(--text-secondary)",
-          fontVariantNumeric: "tabular-nums",
-        }}>
-          {link._count.clicks}
-        </span>
+        flexShrink: 0, textAlign: "center",
+        padding: "0 20px", borderLeft: "1px solid rgba(72,71,74,0.1)",
+        borderRight: "1px solid rgba(72,71,74,0.1)",
+      }} className="hidden sm:block">
+        <p style={{
+          fontSize: "9px", textTransform: "uppercase", letterSpacing: "0.1em",
+          color: "rgba(173,170,173,0.5)", fontWeight: 700, marginBottom: "4px",
+        }}>Clicks</p>
+        <p style={{
+          fontSize: "20px", fontWeight: 900, letterSpacing: "-0.04em",
+          color: "#f9f5f8",
+        }}>{link._count.clicks}</p>
       </div>
 
       {/* Date */}
-      <span className="mono" style={{
-        fontSize: "11px",
-        color: "var(--text-tertiary)",
-        flexShrink: 0,
-        display: window?.innerWidth > 480 ? "block" : "none",
-      }}>
+      <span style={{
+        fontSize: "11px", color: "rgba(173,170,173,0.4)",
+        flexShrink: 0, fontVariantNumeric: "tabular-nums",
+      }} className="hidden lg:block">
         {date}
       </span>
 
       {/* Actions */}
-      <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
         <button
           onClick={handleCopy}
-          className="mono"
+          title="Copy link"
           style={{
-            padding: "4px 10px",
-            borderRadius: "6px",
-            border: copied
-              ? "1px solid var(--accent-border)"
-              : "1px solid var(--border)",
-            background: copied ? "var(--accent-subtle)" : "transparent",
-            color: copied ? "var(--accent)" : "var(--text-tertiary)",
-            fontSize: "11px",
-            fontWeight: 500,
-            cursor: "pointer",
-            transition: "all 0.2s cubic-bezier(0.16,1,0.3,1)",
-            transform: copied ? "scale(0.95)" : "scale(1)",
+            width: "36px", height: "36px", borderRadius: "10px",
+            background: "#1f1f22", border: "none", cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            color: copied ? "#bd9dff" : "rgba(173,170,173,0.6)",
+            transition: "all 0.2s", fontSize: "15px",
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = "#2c2c2f";
+            e.currentTarget.style.color = "#bd9dff";
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = "#1f1f22";
+            e.currentTarget.style.color = copied ? "#bd9dff" : "rgba(173,170,173,0.6)";
           }}
         >
-          {copied ? "✓ copied" : "copy"}
+          {copied ? "✓" : "⎘"}
         </button>
 
         <button
           onClick={handleDelete}
-          className="mono"
+          title="Xoá link"
           style={{
-            padding: "4px 8px",
-            borderRadius: "6px",
-            border: "1px solid transparent",
-            background: "transparent",
-            color: "var(--text-tertiary)",
-            fontSize: "11px",
-            cursor: "pointer",
-            transition: "color 0.15s, opacity 0.15s",
+            width: "36px", height: "36px", borderRadius: "10px",
+            background: "#1f1f22", border: "none", cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            color: "rgba(173,170,173,0.6)",
+            transition: "all 0.2s", fontSize: "14px",
             opacity: hovered ? 1 : 0,
           }}
-          onMouseEnter={e => (e.currentTarget.style.color = "var(--danger)")}
-          onMouseLeave={e => (e.currentTarget.style.color = "var(--text-tertiary)")}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = "rgba(167,1,56,0.15)";
+            e.currentTarget.style.color = "#ff6e84";
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = "#1f1f22";
+            e.currentTarget.style.color = "rgba(173,170,173,0.6)";
+          }}
         >
-          del
+          ✕
         </button>
       </div>
     </div>
