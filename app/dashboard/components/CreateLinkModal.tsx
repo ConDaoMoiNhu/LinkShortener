@@ -25,8 +25,8 @@ export default function CreateLinkModal({ onClose }: Props) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          url: destinationUrl,
-          slug: slug || undefined,
+          originalUrl: destinationUrl,
+          customSlug: slug || undefined,
           expiresAt: expiryDate || undefined,
         }),
       });

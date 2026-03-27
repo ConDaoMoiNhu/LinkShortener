@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getSessionOrDev } from "@/lib/dev-session";
 import { db } from "@/lib/db";
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
   const { slug } = await params;
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+  const session = await getSessionOrDev();
+  if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -24,7 +23,12 @@ export async function GET(
     },
   });
 
-  if (!link || link.userId !== session.user.id) {
+  if (!link) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  const userId = session.user.id ?? null;
+  if (process.env.NODE_ENV !== "development" && link.userId !== userId) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
@@ -42,9 +46,8 @@ export async function GET(
     return acc;
   }, {});
 
-  // Time-series: group by ngày (UTC)
   const byDate = link.clicks.reduce<Record<string, number>>((acc, c) => {
-    const date = c.createdAt.toISOString().split("T")[0]; // "YYYY-MM-DD"
+    const date = c.createdAt.toISOString().split("T")[0];
     acc[date] = (acc[date] ?? 0) + 1;
     return acc;
   }, {});

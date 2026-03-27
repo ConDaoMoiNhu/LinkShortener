@@ -14,7 +14,7 @@ interface User {
 interface Link {
   id: string;
   slug: string;
-  url: string;
+  originalUrl: string;
   createdAt: string;
   expiresAt: string | null;
   _count: { clicks: number };
@@ -198,7 +198,7 @@ export default function DashboardClient({ user }: { user: User }) {
                         </span>
                       </div>
                       <div className="text-[#bd9dff] text-sm mb-0.5 truncate">{shortUrl}</div>
-                      <div className="text-[rgba(173,170,173,0.4)] text-xs truncate">→ {link.url}</div>
+                      <div className="text-[rgba(173,170,173,0.4)] text-xs truncate">→ {link.originalUrl}</div>
                     </div>
                     <div className="flex gap-8 items-center shrink-0">
                       <div className="text-right">

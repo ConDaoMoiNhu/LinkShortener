@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 import { z } from "zod";
-import { authOptions } from "@/lib/auth";
+import { getSessionOrDev } from "@/lib/dev-session";
 import { db } from "@/lib/db";
 import { deleteSlugUrl, setSlugUrl } from "@/lib/kv";
 import { isValidUrl } from "@/lib/utils";
@@ -16,14 +15,14 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const session = await getSessionOrDev();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const link = await db.link.findUnique({ where: { id } });
   if (!link) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  if (link.userId !== session.user.id) {
+
+  const userId = session.user.id ?? null;
+  if (process.env.NODE_ENV !== "development" && link.userId !== userId) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -54,22 +53,18 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const session = await getSessionOrDev();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const link = await db.link.findUnique({ where: { id } });
+  if (!link) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  if (!link) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
-
-  if (link.userId !== session.user.id) {
+  const userId = session.user.id ?? null;
+  if (process.env.NODE_ENV !== "development" && link.userId !== userId) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
