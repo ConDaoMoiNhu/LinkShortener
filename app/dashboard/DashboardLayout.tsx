@@ -23,10 +23,10 @@ const S = {
 };
 
 const navItems = [
-  { label: "Dashboard", href: "/dashboard" },
-  { label: "Links", href: "/dashboard/links" },
-  { label: "Analytics", href: "/dashboard/analytics" },
-  { label: "Settings", href: "/dashboard/settings" },
+  { label: "Dashboard", href: "/dashboard", icon: "dashboard" },
+  { label: "Links", href: "/dashboard/links", icon: "link" },
+  { label: "Analytics", href: "/dashboard/analytics", icon: "analytics" },
+  { label: "Settings", href: "/dashboard/settings", icon: "settings" },
 ];
 
 function Avatar({ user, size = 32 }: { user: User; size?: number }) {
@@ -128,12 +128,39 @@ export default function DashboardLayout({
           borderRight: "1px solid rgba(72,71,74,0.06)",
         }}
       >
-        {/* User info */}
+        {/* Brand area with purple link icon */}
         <div style={{
-          marginBottom: "24px", padding: "0 8px",
+          marginBottom: "20px", padding: "0 8px",
           display: "flex", alignItems: "center", gap: "12px",
         }}>
-          <Avatar user={user} size={38} />
+          <div style={{
+            width: "36px", height: "36px", borderRadius: "10px",
+            background: "linear-gradient(135deg, #bd9dff 0%, #8a4cfc 100%)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            flexShrink: 0,
+          }}>
+            <span className="material-symbols-outlined" style={{ color: "#000", fontSize: "18px" }}>
+              link
+            </span>
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <p style={{ fontSize: "15px", fontWeight: 900, color: S.onSurface, letterSpacing: "-0.04em", lineHeight: 1.2 }}>
+              ls<span style={{ color: S.primary }}>/</span>
+            </p>
+            <p style={{ fontSize: "11px", color: "rgba(173,170,173,0.45)" }}>
+              Link Dashboard
+            </p>
+          </div>
+        </div>
+
+        {/* User info */}
+        <div style={{
+          marginBottom: "20px", padding: "12px",
+          background: S.surfaceContainer, borderRadius: "12px",
+          display: "flex", alignItems: "center", gap: "10px",
+          border: "1px solid rgba(72,71,74,0.08)",
+        }}>
+          <Avatar user={user} size={34} />
           <div style={{ minWidth: 0 }}>
             <p style={{ fontSize: "13px", fontWeight: 700, color: S.onSurface, lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {user.name ?? "User"}
@@ -174,10 +201,39 @@ export default function DashboardLayout({
                   }
                 }}
               >
+                <span className="material-symbols-outlined" style={{ fontSize: "20px" }}>
+                  {item.icon}
+                </span>
                 {item.label}
               </Link>
             );
           })}
+
+          {/* Support — static link */}
+          <a
+            href="mailto:support@example.com"
+            style={{
+              display: "flex", alignItems: "center", gap: "12px",
+              padding: "10px 12px", borderRadius: "10px", textDecoration: "none",
+              borderLeft: "3px solid transparent",
+              color: "rgba(249,245,248,0.4)",
+              fontSize: "14px", fontWeight: 500,
+              transition: "all 0.2s",
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = "rgba(25,25,28,0.6)";
+              e.currentTarget.style.color = S.onSurface;
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = "transparent";
+              e.currentTarget.style.color = "rgba(249,245,248,0.4)";
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: "20px" }}>
+              support
+            </span>
+            Support
+          </a>
         </nav>
 
         {/* Logout at bottom */}
@@ -197,6 +253,9 @@ export default function DashboardLayout({
             onMouseEnter={e => (e.currentTarget.style.color = S.onSurface)}
             onMouseLeave={e => (e.currentTarget.style.color = "rgba(249,245,248,0.4)")}
           >
+            <span className="material-symbols-outlined" style={{ fontSize: "20px" }}>
+              logout
+            </span>
             Đăng xuất
           </button>
         </div>
@@ -236,6 +295,9 @@ export default function DashboardLayout({
                 transition: "color 0.2s", padding: "4px 12px",
               }}
             >
+              <span className="material-symbols-outlined" style={{ fontSize: "22px" }}>
+                {item.icon}
+              </span>
               {item.label}
             </Link>
           );

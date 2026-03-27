@@ -109,6 +109,11 @@ body {
 .scale-in { animation: scaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .link-row { animation: slideInLeft 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; }
 
+/* ── Material Symbols ─────────────────────────── */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
 /* ── Stitch utilities ─────────────────────────── */
 .glass-card {
   background: rgba(38, 37, 40, 0.6);
