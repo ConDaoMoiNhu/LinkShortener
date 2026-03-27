@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import CreateLinkForm from "./components/CreateLinkForm";
+import { Copy, QrCode, Trash2, ChevronLeft, ChevronRight, Check } from "lucide-react";
+import CreateLinkModal from "./components/CreateLinkModal";
 
 interface User {
   id?: string;
@@ -10,506 +11,268 @@ interface User {
   image?: string | null;
 }
 
-interface LinkItem {
+interface Link {
   id: string;
   slug: string;
-  originalUrl: string;
+  url: string;
   createdAt: string;
-  expiresAt?: string | null;
+  expiresAt: string | null;
   _count: { clicks: number };
 }
 
-type FilterType = "all" | "active" | "expired";
-
-const S = {
-  surface: "#0e0e10",
-  surfaceLow: "#131315",
-  surfaceContainer: "#19191c",
-  surfaceHigh: "#1f1f22",
-  surfaceBright: "#2c2c2f",
-  onSurface: "#f9f5f8",
-  onSurfaceVariant: "#adaaad",
-  primary: "#bd9dff",
+const STATUS_STYLES: Record<string, string> = {
+  ACTIVE: "bg-[#fe81a4] text-[#5a0027]",
+  EXPIRED: "bg-[rgba(255,80,80,0.15)] text-[#ff6060]",
 };
 
-function isExpired(link: LinkItem): boolean {
-  if (!link.expiresAt) return false;
-  return new Date(link.expiresAt) < new Date();
-}
+const AVATAR_COLORS = [
+  { bg: "#2c2c2f", text: "#f9f5f8" },
+  { bg: "#b28cff", text: "#2e006c" },
+  { bg: "#fe81a4", text: "#5a0027" },
+  { bg: "#2c2c2f", text: "#f9f5f8" },
+];
 
-function isActive(link: LinkItem): boolean {
-  return !isExpired(link);
+function getStatus(link: Link): "ACTIVE" | "EXPIRED" {
+  if (link.expiresAt && new Date(link.expiresAt) < new Date()) return "EXPIRED";
+  return "ACTIVE";
 }
 
 function formatClicks(n: number): string {
-  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+  if (n >= 1000) return (n / 1000).toFixed(1) + "k";
   return String(n);
 }
 
-/* ── Stitch-style link card (horizontal, matches design) ── */
-function StitchLinkCard({
-  link,
-  baseUrl,
-  onDeleted,
-}: {
-  link: LinkItem;
-  baseUrl: string;
-  onDeleted: () => void;
-}) {
-  const [copied, setCopied] = useState(false);
-  const [hovered, setHovered] = useState(false);
-
-  const shortUrl = `${baseUrl}/${link.slug}`;
-  const expired = isExpired(link);
-
-  async function handleCopy() {
-    await navigator.clipboard.writeText(shortUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }
-
-  function handleQr() {
-    window.open(
-      `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(shortUrl)}&size=300x300`,
-      "_blank"
-    );
-  }
-
-  async function handleDelete() {
-    if (!confirm("Xoá link này?")) return;
-    await fetch(`/api/links/${link.id}`, { method: "DELETE" });
-    onDeleted();
-  }
-
-  const badge = expired
-    ? { bg: "rgba(167,1,56,0.18)", color: "#ff6e84", border: "rgba(167,1,56,0.28)", label: "EXPIRED" }
-    : { bg: "rgba(255,142,172,0.15)", color: "#ff8eac", border: "rgba(255,142,172,0.25)", label: "ACTIVE" };
-
-  const btn: React.CSSProperties = {
-    width: "40px", height: "40px", borderRadius: "10px",
-    background: S.surfaceHigh, border: "none", cursor: "pointer",
-    display: "flex", alignItems: "center", justifyContent: "center",
-    transition: "all 0.2s", fontFamily: "inherit", color: S.onSurfaceVariant,
-    fontSize: "15px",
-  };
-
-  return (
-    <div
-      style={{
-        background: S.surfaceContainer, borderRadius: "14px", padding: "20px",
-        border: hovered ? "1px solid rgba(189,157,255,0.3)" : "1px solid rgba(72,71,74,0.1)",
-        transform: hovered ? "scale(1.01)" : "scale(1)",
-        transition: "all 0.3s cubic-bezier(0.4,0,0.2,1)",
-        display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap",
-      }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
-      {/* Left: info */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
-          <a
-            href={shortUrl} target="_blank" rel="noopener noreferrer"
-            style={{
-              fontSize: "15px", fontWeight: 700, letterSpacing: "-0.02em",
-              color: S.onSurface, textDecoration: "none",
-              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-            }}
-          >
-            {shortUrl.replace(/^https?:\/\//, "")}
-          </a>
-          <span style={{
-            fontSize: "9px", fontWeight: 700, letterSpacing: "0.1em", flexShrink: 0,
-            padding: "2px 8px", borderRadius: "4px",
-            background: badge.bg, color: badge.color,
-            border: `1px solid ${badge.border}`,
-          }}>{badge.label}</span>
-        </div>
-        <p style={{
-          fontSize: "12px", color: "rgba(173,170,173,0.45)",
-          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-        }}>{link.originalUrl}</p>
-      </div>
-
-      {/* Middle: clicks */}
-      <div style={{
-        textAlign: "center", padding: "0 24px",
-        borderLeft: "1px solid rgba(72,71,74,0.12)",
-        borderRight: "1px solid rgba(72,71,74,0.12)",
-        flexShrink: 0,
-      }} className="hidden sm:block">
-        <p style={{ fontSize: "9px", textTransform: "uppercase", letterSpacing: "0.12em", color: "rgba(173,170,173,0.5)", fontWeight: 700, marginBottom: "4px" }}>Clicks</p>
-        <p style={{ fontSize: "22px", fontWeight: 900, letterSpacing: "-0.04em", color: S.onSurface, lineHeight: 1 }}>
-          {formatClicks(link._count.clicks)}
-        </p>
-      </div>
-
-      {/* Right: actions */}
-      <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
-        <button onClick={handleCopy} title={copied ? "Đã copy!" : "Copy link"}
-          style={{ ...btn, color: copied ? S.primary : S.onSurfaceVariant }}
-          onMouseEnter={e => { e.currentTarget.style.background = S.surfaceBright; e.currentTarget.style.color = S.primary; }}
-          onMouseLeave={e => { e.currentTarget.style.background = S.surfaceHigh; e.currentTarget.style.color = copied ? S.primary : S.onSurfaceVariant; }}
-        >
-          {copied
-            ? <span className="material-symbols-outlined" style={{ fontSize: "18px" }}>check</span>
-            : <span className="material-symbols-outlined" style={{ fontSize: "18px" }}>content_copy</span>}
-        </button>
-
-        <button onClick={handleQr} title="QR code"
-          style={btn}
-          onMouseEnter={e => { e.currentTarget.style.background = S.surfaceBright; e.currentTarget.style.color = S.onSurface; }}
-          onMouseLeave={e => { e.currentTarget.style.background = S.surfaceHigh; e.currentTarget.style.color = S.onSurfaceVariant; }}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: "18px" }}>qr_code_2</span>
-        </button>
-
-        <button onClick={handleDelete} title="Xoá link"
-          style={btn}
-          onMouseEnter={e => { e.currentTarget.style.background = "rgba(167,1,56,0.15)"; e.currentTarget.style.color = "#ff6e84"; }}
-          onMouseLeave={e => { e.currentTarget.style.background = S.surfaceHigh; e.currentTarget.style.color = S.onSurfaceVariant; }}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: "18px" }}>delete</span>
-        </button>
-      </div>
-    </div>
-  );
-}
-
-/* ── Main Dashboard ── */
 export default function DashboardClient({ user }: { user: User }) {
-  const [links, setLinks] = useState<LinkItem[]>([]);
-  const [baseUrl, setBaseUrl] = useState("");
+  const [links, setLinks] = useState<Link[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<"All" | "Active" | "Expired">("All");
+  const [page, setPage] = useState(1);
   const [showModal, setShowModal] = useState(false);
-  const [filter, setFilter] = useState<FilterType>("all");
-
-  useEffect(() => {
-    setBaseUrl(window.location.origin);
-  }, []);
+  const [copied, setCopied] = useState<string | null>(null);
+  const PER_PAGE = 5;
 
   const fetchLinks = useCallback(async () => {
     const res = await fetch("/api/links");
-    const data = await res.json();
-    setLinks(Array.isArray(data) ? data : []);
+    if (res.ok) setLinks(await res.json());
+    setLoading(false);
   }, []);
 
-  useEffect(() => {
-    fetchLinks();
-  }, [fetchLinks]);
+  useEffect(() => { fetchLinks(); }, [fetchLinks]);
 
-  const totalClicks = links.reduce((sum, l) => sum + l._count.clicks, 0);
-  const thisWeek = links.filter(
-    (l) => Date.now() - new Date(l.createdAt).getTime() < 7 * 86400000
-  ).length;
-
-  const filteredLinks = links.filter((l) => {
-    if (filter === "active") return isActive(l);
-    if (filter === "expired") return isExpired(l);
-    return true;
+  const filtered = links.filter(l => {
+    if (filter === "All") return true;
+    const s = getStatus(l);
+    return filter === "Active" ? s === "ACTIVE" : s === "EXPIRED";
   });
 
-  const filterTabs: { key: FilterType; label: string }[] = [
-    { key: "all", label: "All" },
-    { key: "active", label: "Active" },
-    { key: "expired", label: "Expired" },
-  ];
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+  const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  const totalClicks = links.reduce((s, l) => s + (l._count?.clicks ?? 0), 0);
+  const activeCount = links.filter(l => getStatus(l) === "ACTIVE").length;
+
+  const handleCopy = (slug: string) => {
+    const url = `${window.location.origin}/${slug}`;
+    navigator.clipboard.writeText(url).catch(() => {});
+    setCopied(slug);
+    setTimeout(() => setCopied(null), 2000);
+  };
+
+  const handleDelete = async (id: string) => {
+    await fetch(`/api/links/${id}`, { method: "DELETE" });
+    fetchLinks();
+  };
+
+  const avatarStack = [
+    ...links.slice(0, 3).map((l, i) => ({
+      initials: l.slug.slice(0, 2).toUpperCase(),
+      ...AVATAR_COLORS[i % AVATAR_COLORS.length],
+    })),
+    links.length > 3 ? { initials: `+${links.length - 3}`, ...AVATAR_COLORS[3] } : null,
+  ].filter(Boolean) as { initials: string; bg: string; text: string }[];
 
   return (
-    <div style={{ padding: "24px 32px", maxWidth: "960px", margin: "0 auto" }}>
-
-      {/* Page header */}
-      <div className="fade-up" style={{
-        display: "flex", flexWrap: "wrap", alignItems: "flex-end",
-        justifyContent: "space-between", gap: "16px", marginBottom: "40px",
-      }}>
-        <div>
-          <h1 style={{
-            fontSize: "clamp(28px,4vw,42px)", fontWeight: 900,
-            letterSpacing: "-0.04em", color: S.onSurface, lineHeight: 1,
-            marginBottom: "6px",
-          }}>Overview</h1>
-          <p style={{ fontSize: "14px", color: S.onSurfaceVariant, fontWeight: 500 }}>
-            {user.name ? `Xin chào, ${user.name.split(" ").pop()}` : "Quản lý links của bạn"}
-          </p>
-        </div>
-
-        <button
-          onClick={() => setShowModal(true)}
-          className="liquid-gradient"
-          style={{
-            display: "flex", alignItems: "center", gap: "8px",
-            padding: "12px 24px", borderRadius: "12px", border: "none",
-            color: "#000", fontSize: "14px", fontWeight: 700,
-            cursor: "pointer", flexShrink: 0,
-            boxShadow: "0 20px 40px rgba(189,157,255,0.2)",
-            transition: "transform 0.2s, filter 0.2s",
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.transform = "scale(1.02)";
-            e.currentTarget.style.filter = "brightness(1.08)";
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.transform = "scale(1)";
-            e.currentTarget.style.filter = "brightness(1)";
-          }}
-        >
-          <span style={{ fontSize: "18px", fontWeight: 400 }}>+</span>
-          Tạo link mới
-        </button>
-      </div>
-
-      {/* ── Stats Bento Grid (2-col) ── */}
-      <div className="fade-up" style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-        gap: "16px", marginBottom: "48px", animationDelay: "0.07s",
-      }}>
-
-        {/* Total Engagement — spans 2 cols */}
-        <div style={{
-          gridColumn: "span 2",
-          background: S.surfaceLow, borderRadius: "16px", padding: "32px", minHeight: "160px",
-          display: "flex", flexDirection: "column", justifyContent: "space-between",
-          position: "relative", overflow: "hidden",
-          border: "1px solid rgba(72,71,74,0.05)",
-        }}>
-          <div style={{ position: "relative", zIndex: 1 }}>
-            <p style={{
-              fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.12em",
-              color: S.onSurfaceVariant, fontWeight: 700, marginBottom: "12px",
-            }}>Total Engagement</p>
-            <p style={{
-              fontSize: "clamp(44px,7vw,68px)", fontWeight: 900,
-              letterSpacing: "-0.05em", color: S.primary, lineHeight: 1,
-            }}>
-              {formatClicks(totalClicks)}
-            </p>
+    <>
+      <div className="p-8 max-w-[1100px]">
+        {/* Header */}
+        <div className="flex items-end justify-between mb-8">
+          <div>
+            <h1 className="text-[#f9f5f8] font-black text-5xl tracking-[-2.4px] leading-tight">Overview</h1>
+            <p className="text-[#adaaad] text-base mt-1">Manage your links and monitor reach.</p>
           </div>
-          <p style={{ fontSize: "13px", color: "#ff8eac", fontWeight: 700, position: "relative", zIndex: 1 }}>
-            {thisWeek > 0 ? `+${thisWeek} link tuần này` : "Chưa có link tuần này"}
-          </p>
-          <div style={{
-            position: "absolute", right: "-40px", bottom: "-40px",
-            width: "200px", height: "200px",
-            background: "rgba(189,157,255,0.05)", borderRadius: "50%",
-            filter: "blur(40px)", pointerEvents: "none",
-          }} />
-        </div>
-
-        {/* Active Links */}
-        <div style={{
-          background: S.surfaceContainer, borderRadius: "16px", padding: "32px",
-          display: "flex", flexDirection: "column", justifyContent: "center",
-          border: "1px solid rgba(72,71,74,0.05)",
-        }}>
-          <p style={{
-            fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.12em",
-            color: S.onSurfaceVariant, fontWeight: 700, marginBottom: "8px",
-          }}>Active Links</p>
-          <p style={{
-            fontSize: "48px", fontWeight: 900, letterSpacing: "-0.05em",
-            color: S.onSurface, lineHeight: 1,
-          }}>{links.length}</p>
-        </div>
-      </div>
-
-      {/* ── Recent Links header ── */}
-      <div className="fade-up" style={{ animationDelay: "0.14s" }}>
-        <div style={{
-          display: "flex", alignItems: "center",
-          justifyContent: "space-between", marginBottom: "16px",
-          flexWrap: "wrap", gap: "12px",
-        }}>
-          {/* Left: title + filter tabs */}
-          <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-            <h2 style={{
-              fontSize: "18px", fontWeight: 700, color: S.onSurface,
-              letterSpacing: "-0.02em",
-            }}>Recent Links</h2>
-
-            {/* Filter pill tabs */}
-            <div style={{ display: "flex", gap: "6px" }}>
-              {filterTabs.map((tab) => {
-                const active = filter === tab.key;
-                return (
-                  <button
-                    key={tab.key}
-                    onClick={() => setFilter(tab.key)}
-                    style={{
-                      padding: "4px 14px", borderRadius: "999px",
-                      border: active ? "1px solid rgba(189,157,255,0.2)" : "1px solid rgba(72,71,74,0.15)",
-                      background: active ? S.surfaceContainer : "transparent",
-                      color: active ? S.primary : S.onSurfaceVariant,
-                      fontSize: "12px", fontWeight: 600,
-                      cursor: "pointer", fontFamily: "inherit",
-                      transition: "all 0.15s",
-                    }}
-                    onMouseEnter={e => {
-                      if (!active) e.currentTarget.style.background = S.surfaceContainer;
-                    }}
-                    onMouseLeave={e => {
-                      if (!active) e.currentTarget.style.background = "transparent";
-                    }}
-                  >
-                    {tab.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Right: Sort button */}
           <button
-            style={{
-              display: "flex", alignItems: "center", gap: "6px",
-              padding: "6px 14px", borderRadius: "10px",
-              border: "1px solid rgba(72,71,74,0.15)",
-              background: "transparent", color: S.onSurfaceVariant,
-              fontSize: "12px", fontWeight: 500, cursor: "pointer",
-              fontFamily: "inherit", transition: "all 0.15s",
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.background = S.surfaceContainer;
-              e.currentTarget.style.color = S.onSurface;
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.background = "transparent";
-              e.currentTarget.style.color = S.onSurfaceVariant;
-            }}
+            onClick={() => setShowModal(true)}
+            className="flex items-center gap-2 px-8 py-3.5 rounded-lg font-bold text-base text-black shadow-[0_20px_40px_0_rgba(189,157,255,0.2)] transition-opacity hover:opacity-90"
+            style={{ backgroundImage: "linear-gradient(133deg, rgb(189,157,255) 0%, rgb(138,76,252) 100%)" }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>filter_list</span>
-            Sort by: Date
+            <span className="text-lg leading-none">+</span>
+            Create New Link
           </button>
         </div>
 
-        {/* ── Link list ── */}
-        {filteredLinks.length === 0 ? (
-          <div style={{
-            background: S.surfaceContainer, borderRadius: "16px",
-            padding: "72px 24px", textAlign: "center",
-            border: "1px dashed rgba(72,71,74,0.2)",
-          }}>
-            <span className="material-symbols-outlined" style={{
-              fontSize: "48px", color: "rgba(189,157,255,0.2)",
-              display: "block", marginBottom: "12px",
-            }}>link_off</span>
-            <p style={{ fontSize: "16px", color: S.onSurfaceVariant, marginBottom: "4px", fontWeight: 600 }}>
-              {filter === "all" ? "Chưa có link nào" : `Không có link ${filter}`}
-            </p>
-            <p style={{ fontSize: "13px", color: "rgba(173,170,173,0.5)" }}>
-              {filter === "all" ? `Nhấn "Tạo link mới" để bắt đầu` : "Thử chọn filter khác"}
-            </p>
-          </div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            {filteredLinks.map((link) => (
-              <StitchLinkCard
-                key={link.id}
-                link={link}
-                baseUrl={baseUrl}
-                onDeleted={fetchLinks}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* ── Create link modal ── */}
-      {showModal && (
-        <div
-          style={{
-            position: "fixed", inset: 0, zIndex: 60,
-            background: "rgba(0,0,0,0.8)", backdropFilter: "blur(8px)",
-            WebkitBackdropFilter: "blur(8px)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            padding: "16px",
-          }}
-          onClick={(e) => { if (e.target === e.currentTarget) setShowModal(false); }}
-        >
-          <div
-            className="scale-in glass-card ghost-border"
-            style={{
-              width: "100%", maxWidth: "560px", borderRadius: "24px",
-              overflow: "hidden", position: "relative",
-              boxShadow: "0 40px 80px rgba(189,157,255,0.15)",
-            }}
-          >
-            {/* Modal header */}
-            <div style={{
-              padding: "32px 32px 16px",
-              display: "flex", justifyContent: "space-between", alignItems: "flex-start",
-            }}>
-              <div>
-                <h2 style={{
-                  fontSize: "28px", fontWeight: 900, letterSpacing: "-0.04em",
-                  color: S.onSurface, marginBottom: "4px",
-                }}>Tạo link mới</h2>
-                <p style={{ fontSize: "13px", color: S.onSurfaceVariant, fontWeight: 500 }}>
-                  Rút gọn URL của bạn ngay lập tức
-                </p>
-              </div>
-              <button
-                onClick={() => setShowModal(false)}
-                style={{
-                  width: "36px", height: "36px", borderRadius: "50%",
-                  background: "transparent", border: "none", color: S.onSurfaceVariant,
-                  cursor: "pointer", display: "flex", alignItems: "center",
-                  justifyContent: "center", fontSize: "20px", transition: "background 0.15s",
-                  fontFamily: "inherit",
-                }}
-                onMouseEnter={e => (e.currentTarget.style.background = S.surfaceBright)}
-                onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-              >
-                ✕
-              </button>
+        {/* Stats Bento */}
+        <div className="grid grid-cols-3 gap-6 mb-8">
+          <div className="col-span-2 bg-[#131315] rounded-lg border border-[rgba(72,71,74,0.05)] p-8 relative overflow-hidden">
+            <div className="absolute bottom-[-39px] right-[-39px] w-64 h-64 bg-[rgba(189,157,255,0.05)] blur-[32px] rounded-xl pointer-events-none" />
+            <p className="text-[rgba(173,170,173,0.8)] text-xs font-bold tracking-[1.2px] uppercase mb-4">Total Engagement</p>
+            <div className="text-[#bd9dff] font-black text-7xl tracking-[-3.6px] leading-none mb-4">
+              {loading ? "—" : formatClicks(totalClicks)}
             </div>
-
-            {/* Form */}
-            <div style={{ padding: "8px 32px 32px" }}>
-              <CreateLinkForm
-                onCreated={() => {
-                  fetchLinks();
-                  setShowModal(false);
-                }}
-              />
+            <div className="flex items-center gap-2">
+              <svg width="20" height="12" viewBox="0 0 20 12" fill="none">
+                <path d="M1.4 12L0 10.6L7.4 3.15L11.4 7.15L16.6 2H14V0H20V6H18V3.4L11.4 10L7.4 6L1.4 12" fill="#FF8EAC"/>
+              </svg>
+              <span className="text-[#ff8eac] font-bold text-base">Total clicks across all links</span>
             </div>
-
-            {/* Decorative glows */}
-            <div style={{
-              position: "absolute", bottom: "-60px", right: "-60px",
-              width: "200px", height: "200px",
-              background: "rgba(189,157,255,0.08)", borderRadius: "50%",
-              filter: "blur(60px)", pointerEvents: "none",
-            }} />
-            <div style={{
-              position: "absolute", top: "-60px", left: "-60px",
-              width: "200px", height: "200px",
-              background: "rgba(195,139,245,0.06)", borderRadius: "50%",
-              filter: "blur(60px)", pointerEvents: "none",
-            }} />
+          </div>
+          <div className="bg-[#19191c] rounded-lg border border-[rgba(72,71,74,0.05)] p-8">
+            <p className="text-[rgba(173,170,173,0.8)] text-xs font-bold tracking-[1.2px] uppercase mb-2">Active Links</p>
+            <div className="text-[#f9f5f8] font-black text-4xl tracking-[-1.8px] leading-tight mb-6">
+              {loading ? "—" : activeCount}
+            </div>
+            <div className="flex items-center">
+              {avatarStack.map((av, i) => (
+                <div
+                  key={i}
+                  className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs border-2 border-[#19191c] -ml-2 first:ml-0 shrink-0"
+                  style={{ backgroundColor: av.bg, color: av.text, zIndex: avatarStack.length - i }}
+                >
+                  {av.initials}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
+
+        {/* Recent Links */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-6">
+              <h2 className="text-[#f9f5f8] font-bold text-xl">Recent Links</h2>
+              <div className="flex items-center gap-2">
+                {(["All", "Active", "Expired"] as const).map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => { setFilter(f); setPage(1); }}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-colors ${
+                      filter === f
+                        ? "bg-[#19191c] text-[#bd9dff] border border-[rgba(189,157,255,0.2)]"
+                        : "text-[#adaaad] hover:text-[#f9f5f8]"
+                    }`}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            {loading ? (
+              Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="bg-[#19191c] border border-[rgba(72,71,74,0.1)] rounded-lg px-6 py-5 flex items-center gap-4 opacity-40 animate-pulse">
+                  <div className="flex-1">
+                    <div className="h-4 bg-[#2c2c2f] rounded w-48 mb-2" />
+                    <div className="h-3 bg-[#2c2c2f] rounded w-72" />
+                  </div>
+                  <div className="h-8 bg-[#2c2c2f] rounded w-16" />
+                </div>
+              ))
+            ) : paginated.length === 0 ? (
+              <div className="bg-[#19191c] border border-[rgba(72,71,74,0.1)] rounded-lg px-6 py-12 text-center text-[#adaaad] text-sm">
+                Chưa có link nào. Nhấn "Create New Link" để bắt đầu.
+              </div>
+            ) : (
+              paginated.map((link) => {
+                const status = getStatus(link);
+                const shortUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/${link.slug}`;
+                return (
+                  <div
+                    key={link.id}
+                    className="bg-[#19191c] border border-[rgba(72,71,74,0.1)] rounded-lg px-6 py-5 flex items-center gap-4 hover:border-[rgba(189,157,255,0.15)] transition-colors"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3 mb-1">
+                        <span className="text-[#f9f5f8] font-bold text-base truncate">/{link.slug}</span>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold tracking-[0.5px] shrink-0 ${STATUS_STYLES[status]}`}>
+                          {status}
+                        </span>
+                      </div>
+                      <div className="text-[#bd9dff] text-sm mb-0.5 truncate">{shortUrl}</div>
+                      <div className="text-[rgba(173,170,173,0.4)] text-xs truncate">→ {link.url}</div>
+                    </div>
+                    <div className="flex gap-8 items-center shrink-0">
+                      <div className="text-right">
+                        <div className="text-[rgba(173,170,173,0.6)] text-[10px] font-bold tracking-[1px] uppercase mb-0.5">Clicks</div>
+                        <div className="text-[#f9f5f8] font-bold text-lg">{formatClicks(link._count?.clicks ?? 0)}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0 ml-2">
+                      <button
+                        onClick={() => handleCopy(link.slug)}
+                        className="text-[#adaaad] hover:text-[#f9f5f8] transition-colors p-1"
+                        title="Copy URL"
+                      >
+                        {copied === link.slug ? <Check size={16} className="text-[#bd9dff]" /> : <Copy size={16} />}
+                      </button>
+                      <button
+                        onClick={() => handleDelete(link.id)}
+                        className="text-[#adaaad] hover:text-[#ff6060] transition-colors p-1"
+                        title="Delete"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Pagination */}
+          {!loading && filtered.length > 0 && (
+            <div className="flex items-center justify-between mt-6">
+              <p className="text-[#adaaad] text-sm">
+                Showing {Math.min((page - 1) * PER_PAGE + 1, filtered.length)}–{Math.min(page * PER_PAGE, filtered.length)} of {filtered.length} links
+              </p>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="w-8 h-8 rounded-lg text-[#adaaad] hover:text-[#f9f5f8] disabled:opacity-30 transition-colors flex items-center justify-center"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                {Array.from({ length: Math.min(totalPages, 5) }).map((_, i) => {
+                  const p = i + 1;
+                  return (
+                    <button
+                      key={p}
+                      onClick={() => setPage(p)}
+                      className="w-8 h-8 rounded-lg text-sm font-medium transition-colors"
+                      style={page === p
+                        ? { backgroundImage: "linear-gradient(135deg, rgb(189,157,255) 0%, rgb(138,76,252) 100%)", color: "#fff" }
+                        : { color: "#adaaad" }}
+                    >
+                      {p}
+                    </button>
+                  );
+                })}
+                <button
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="w-8 h-8 rounded-lg text-[#adaaad] hover:text-[#f9f5f8] disabled:opacity-30 transition-colors flex items-center justify-center"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {showModal && (
+        <CreateLinkModal onClose={() => { setShowModal(false); fetchLinks(); }} />
       )}
-
-      {/* Mobile FAB */}
-      <button
-        className="md:hidden liquid-gradient"
-        onClick={() => setShowModal(true)}
-        style={{
-          position: "fixed", bottom: "88px", right: "24px", zIndex: 49,
-          width: "56px", height: "56px", borderRadius: "50%",
-          border: "none", cursor: "pointer",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: "26px", fontWeight: 300, color: "#000",
-          boxShadow: "0 8px 24px rgba(189,157,255,0.35)",
-          transition: "transform 0.2s",
-        }}
-        onMouseEnter={e => (e.currentTarget.style.transform = "scale(1.08)")}
-        onMouseLeave={e => (e.currentTarget.style.transform = "scale(1)")}
-      >
-        +
-      </button>
-
-    </div>
+    </>
   );
 }

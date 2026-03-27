@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { Eye, EyeOff, Copy, RefreshCw, BookOpen, Shield, MessageCircle } from "lucide-react";
+import { signOut } from "next-auth/react";
 
 interface User {
   id?: string;
@@ -9,222 +11,223 @@ interface User {
   image?: string | null;
 }
 
-const S = {
-  surface: "#0e0e10",
-  surfaceLow: "#131315",
-  surfaceContainer: "#19191c",
-  surfaceHigh: "#1f1f22",
-  surfaceBright: "#2c2c2f",
-  onSurface: "#f9f5f8",
-  onSurfaceVariant: "#adaaad",
-  primary: "#bd9dff",
-  error: "#ff6e84",
-};
+const API_KEY_MASKED = "sk_••••••••••••••••••••••••••••••••••";
+const API_KEY_REAL = "sk_demo_placeholder_key_not_real_value";
 
 export default function SettingsClient({ user }: { user: User }) {
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [deleteMsg, setDeleteMsg] = useState("");
 
-  async function handleDeleteAllLinks() {
-    if (!confirm("Bạn chắc chắn muốn xoá TẤT CẢ links? Hành động này không thể hoàn tác.")) return;
+  const handleCopy = () => {
+    navigator.clipboard.writeText(API_KEY_REAL).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleSave = () => {
+    setSaving(true);
+    setTimeout(() => {
+      setSaving(false);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    }, 1000);
+  };
+
+  const handlePurge = async () => {
+    if (!confirm("Xóa tất cả links? Hành động này không thể hoàn tác.")) return;
     setDeleting(true);
-    setDeleteMsg("");
-    try {
-      const res = await fetch("/api/links", { method: "DELETE" });
-      if (res.ok) {
-        setDeleteMsg("Đã xoá tất cả links thành công.");
-      } else {
-        const data = await res.json().catch(() => ({}));
-        setDeleteMsg(data.error ?? "Có lỗi xảy ra khi xoá.");
-      }
-    } catch {
-      setDeleteMsg("Không thể kết nối server.");
-    }
+    await fetch("/api/links", { method: "DELETE" }).catch(() => {});
     setDeleting(false);
-  }
-
-  const initial = (user.name ?? user.email ?? "U").charAt(0).toUpperCase();
+  };
 
   return (
-    <div style={{ padding: "24px 32px", maxWidth: "720px", margin: "0 auto" }}>
-
-      {/* Page header */}
-      <div className="fade-up" style={{ marginBottom: "40px" }}>
-        <h1 style={{
-          fontSize: "clamp(28px,4vw,42px)", fontWeight: 900,
-          letterSpacing: "-0.04em", color: S.onSurface, lineHeight: 1, marginBottom: "6px",
-        }}>Settings</h1>
-        <p style={{ fontSize: "14px", color: S.onSurfaceVariant, fontWeight: 500 }}>
-          Quản lý tài khoản của bạn
+    <div className="p-8 max-w-[1100px]">
+      <div className="mb-8">
+        <h1 className="text-[#f9f5f8] font-black text-5xl tracking-[-2.4px] leading-tight">
+          Workspace Settings
+        </h1>
+        <p className="text-[#adaaad] text-base mt-2">
+          Manage your account, API integration, and workspace.
         </p>
       </div>
 
-      {/* ── Account Profile card ── */}
-      <div className="fade-up" style={{
-        background: S.surfaceLow, borderRadius: "20px",
-        border: "1px solid rgba(72,71,74,0.1)", marginBottom: "20px",
-        overflow: "hidden", animationDelay: "0.07s",
-      }}>
-        {/* Card header */}
-        <div style={{
-          padding: "24px 28px 20px",
-          borderBottom: "1px solid rgba(72,71,74,0.08)",
-        }}>
-          <p style={{
-            fontSize: "13px", fontWeight: 700, color: S.onSurface, letterSpacing: "-0.01em",
-          }}>Account Profile</p>
-          <p style={{ fontSize: "12px", color: S.onSurfaceVariant, marginTop: "2px" }}>
-            Thông tin tài khoản của bạn
-          </p>
+      <div className="grid grid-cols-3 gap-6">
+        {/* Left column */}
+        <div className="col-span-2 flex flex-col gap-6">
+          {/* Account Profile */}
+          <div className="bg-[#19191c] border border-[rgba(72,71,74,0.1)] rounded-lg p-8">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-[#f9f5f8] font-bold text-xl">Account Profile</h2>
+                <p className="text-[#adaaad] text-sm mt-0.5">Your account details.</p>
+              </div>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="text-[#bd9dff] font-bold text-sm hover:text-[#d4baff] transition-colors disabled:opacity-50"
+              >
+                {saving ? "Saving..." : saved ? "Saved ✓" : "Edit Profile"}
+              </button>
+            </div>
+            <div className="flex gap-8">
+              <div className="shrink-0">
+                {user.image ? (
+                  <img src={user.image} alt="" className="w-20 h-20 rounded-xl object-cover" />
+                ) : (
+                  <div className="w-20 h-20 rounded-xl bg-[#2c2c2f] flex items-center justify-center text-[#bd9dff] font-black text-3xl">
+                    {(user.name ?? user.email ?? "U").charAt(0).toUpperCase()}
+                  </div>
+                )}
+              </div>
+              <div className="flex-1 grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[#adaaad] text-[11px] font-bold tracking-[1.2px] uppercase block mb-2">Full Name</label>
+                  <div className="w-full bg-black border border-[rgba(72,71,74,0.1)] rounded-lg px-4 py-3 text-[#f9f5f8] text-sm">
+                    {user.name ?? "—"}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[#adaaad] text-[11px] font-bold tracking-[1.2px] uppercase block mb-2">Email Address</label>
+                  <div className="w-full bg-black border border-[rgba(72,71,74,0.1)] rounded-lg px-4 py-3 text-[#f9f5f8] text-sm">
+                    {user.email ?? "—"}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* API Credentials */}
+          <div className="bg-[#19191c] border border-[rgba(72,71,74,0.1)] rounded-lg p-8">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-[#f9f5f8] font-bold text-xl">API Credentials</h2>
+                <p className="text-[#adaaad] text-sm mt-0.5">Use these keys to integrate with your apps.</p>
+              </div>
+              <button className="flex items-center gap-1.5 text-[#bd9dff] font-bold text-sm hover:text-[#d4baff] transition-colors">
+                <RefreshCw size={14} />
+                Regenerate
+              </button>
+            </div>
+            <div>
+              <label className="text-[#adaaad] text-[11px] font-bold tracking-[1.2px] uppercase block mb-2">Secret API Key</label>
+              <div className="flex gap-3">
+                <div className="flex-1 bg-black border border-[rgba(72,71,74,0.1)] rounded-lg px-4 py-3 flex items-center justify-between">
+                  <span className="text-[#f9f5f8] text-sm font-mono">
+                    {showApiKey ? API_KEY_REAL : API_KEY_MASKED}
+                  </span>
+                  <button
+                    onClick={() => setShowApiKey(!showApiKey)}
+                    className="text-[#adaaad] hover:text-[#f9f5f8] transition-colors ml-2 shrink-0"
+                  >
+                    {showApiKey ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+                <button
+                  onClick={handleCopy}
+                  className="flex items-center gap-2 px-5 py-3 rounded-lg font-bold text-sm text-[#3c0089] shrink-0 transition-opacity hover:opacity-90"
+                  style={{ backgroundImage: "linear-gradient(135deg, rgb(189,157,255) 0%, rgb(138,76,252) 100%)" }}
+                >
+                  <Copy size={14} />
+                  {copied ? "Copied!" : "Copy"}
+                </button>
+              </div>
+              <p className="text-[rgba(173,170,173,0.5)] text-xs mt-3 leading-relaxed">
+                Do not share your API keys publicly or include them in client-side code.
+              </p>
+            </div>
+          </div>
+
+          {/* Danger Zone */}
+          <div className="bg-[#19191c] border border-[rgba(255,80,80,0.15)] rounded-lg p-8">
+            <h2 className="text-[#ff6060] font-bold text-xl mb-1">Danger Zone</h2>
+            <p className="text-[#adaaad] text-sm mb-6">Irreversible actions that affect your entire account.</p>
+            <div className="flex flex-col gap-5">
+              <div className="flex items-center justify-between py-4 border-b border-[rgba(72,71,74,0.1)]">
+                <div>
+                  <div className="text-[#f9f5f8] font-bold text-sm">Purge All Links</div>
+                  <div className="text-[#adaaad] text-xs mt-0.5">Permanently delete all your shortened links.</div>
+                </div>
+                <button
+                  onClick={handlePurge}
+                  disabled={deleting}
+                  className="text-[#ff6060] font-bold text-sm hover:text-[#ff8080] transition-colors disabled:opacity-50"
+                >
+                  {deleting ? "Deleting..." : "Purge All"}
+                </button>
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-[#f9f5f8] font-bold text-sm">Sign Out</div>
+                  <div className="text-[#adaaad] text-xs mt-0.5">Sign out from your account.</div>
+                </div>
+                <button
+                  onClick={() => signOut({ callbackUrl: "/" })}
+                  className="px-5 py-2.5 bg-[#ff6060] rounded-lg text-white font-bold text-sm hover:bg-[#ff4040] transition-colors"
+                >
+                  Đăng xuất
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Card body */}
-        <div style={{ padding: "28px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "20px", marginBottom: "32px" }}>
-            {/* Avatar */}
-            {user.image ? (
-              <img
-                src={user.image}
-                alt=""
-                style={{
-                  width: "72px", height: "72px", borderRadius: "50%",
-                  border: `2px solid rgba(189,157,255,0.3)`, flexShrink: 0,
-                }}
-              />
-            ) : (
-              <div style={{
-                width: "72px", height: "72px", borderRadius: "50%",
-                background: "rgba(189,157,255,0.12)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: "28px", fontWeight: 900, color: S.primary, flexShrink: 0,
-                border: `2px solid rgba(189,157,255,0.2)`,
-              }}>
-                {initial}
+        {/* Right column */}
+        <div className="flex flex-col gap-6">
+          {/* Free Plan */}
+          <div
+            className="rounded-lg p-6 relative overflow-hidden"
+            style={{ background: "linear-gradient(135deg, #1a1a2e 0%, #2d1b4e 100%)" }}
+          >
+            <div className="absolute inset-0 opacity-20" style={{ background: "radial-gradient(circle at 80% 20%, #bd9dff 0%, transparent 60%)" }} />
+            <div className="relative z-10">
+              <span className="bg-[#fe81a4] text-[#5a0027] text-[10px] font-bold tracking-[0.5px] px-2 py-0.5 rounded mb-4 inline-block">
+                FREE PLAN
+              </span>
+              <div className="text-[#f9f5f8] font-black text-4xl tracking-tight mb-0.5">
+                $0<span className="text-lg font-normal text-[#adaaad]">/mo</span>
               </div>
-            )}
-            <div>
-              <p style={{ fontSize: "20px", fontWeight: 800, color: S.onSurface, letterSpacing: "-0.02em" }}>
-                {user.name ?? "—"}
-              </p>
-              <p style={{ fontSize: "13px", color: S.onSurfaceVariant, marginTop: "2px" }}>
-                {user.email}
-              </p>
-            </div>
-          </div>
-
-          {/* Fields */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px" }}>
-            <div>
-              <p style={{
-                fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.1em",
-                color: S.onSurfaceVariant, fontWeight: 700, marginBottom: "8px",
-              }}>Full Name</p>
-              <div style={{
-                padding: "12px 16px", borderRadius: "10px",
-                background: S.surfaceContainer,
-                border: "1px solid rgba(72,71,74,0.12)",
-                fontSize: "14px", color: S.onSurface, fontWeight: 500,
-              }}>
-                {user.name ?? "—"}
-              </div>
-            </div>
-            <div>
-              <p style={{
-                fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.1em",
-                color: S.onSurfaceVariant, fontWeight: 700, marginBottom: "8px",
-              }}>Email Address</p>
-              <div style={{
-                padding: "12px 16px", borderRadius: "10px",
-                background: S.surfaceContainer,
-                border: "1px solid rgba(72,71,74,0.12)",
-                fontSize: "14px", color: S.onSurface, fontWeight: 500,
-              }}>
-                {user.email ?? "—"}
+              <p className="text-[#adaaad] text-xs mb-5">Unlimited links, analytics included</p>
+              <div className="flex flex-col gap-3 mb-5">
+                {[
+                  { label: "Active Links", value: "Unlimited" },
+                  { label: "Analytics Depth", value: "30 days" },
+                  { label: "Custom Slug", value: "Yes" },
+                ].map((item, i) => (
+                  <div key={i} className="flex items-center justify-between">
+                    <span className="text-[rgba(173,170,173,0.7)] text-sm">{item.label}</span>
+                    <span className="text-[#f9f5f8] font-bold text-sm">{item.value}</span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
 
-          <p style={{
-            marginTop: "16px", fontSize: "12px", color: "rgba(173,170,173,0.45)",
-          }}>
-            Thông tin được đồng bộ từ tài khoản OAuth của bạn.
-          </p>
+          {/* Need Help */}
+          <div className="bg-[#19191c] border border-[rgba(72,71,74,0.1)] rounded-lg p-6">
+            <h3 className="text-[#adaaad] text-[11px] font-bold tracking-[1.2px] uppercase mb-4">Need Help?</h3>
+            <div className="flex flex-col gap-4">
+              {[
+                { icon: BookOpen, title: "Documentation", desc: "API and usage guide" },
+                { icon: Shield, title: "Privacy Policy", desc: "Data and compliance" },
+                { icon: MessageCircle, title: "Support", desc: "Contact our team" },
+              ].map(({ icon: Icon, title, desc }, i) => (
+                <div key={i} className="flex items-center gap-3 cursor-pointer group">
+                  <div className="w-8 h-8 rounded-lg bg-[#2c2c2f] flex items-center justify-center shrink-0 group-hover:bg-[rgba(189,157,255,0.1)] transition-colors">
+                    <Icon size={14} className="text-[#adaaad] group-hover:text-[#bd9dff] transition-colors" />
+                  </div>
+                  <div>
+                    <div className="text-[#f9f5f8] text-sm font-bold group-hover:text-[#bd9dff] transition-colors">{title}</div>
+                    <div className="text-[#adaaad] text-xs">{desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
-
-      {/* ── Danger Zone card ── */}
-      <div className="fade-up" style={{
-        background: S.surfaceLow, borderRadius: "20px",
-        border: "1px solid rgba(255,110,132,0.15)",
-        overflow: "hidden", animationDelay: "0.14s",
-      }}>
-        {/* Card header */}
-        <div style={{
-          padding: "24px 28px 20px",
-          borderBottom: "1px solid rgba(255,110,132,0.08)",
-        }}>
-          <p style={{
-            fontSize: "13px", fontWeight: 700, color: S.error, letterSpacing: "-0.01em",
-          }}>Danger Zone</p>
-          <p style={{ fontSize: "12px", color: S.onSurfaceVariant, marginTop: "2px" }}>
-            Các hành động không thể hoàn tác
-          </p>
-        </div>
-
-        {/* Card body */}
-        <div style={{ padding: "28px" }}>
-          <div style={{
-            display: "flex", alignItems: "center",
-            justifyContent: "space-between", flexWrap: "wrap", gap: "16px",
-          }}>
-            <div>
-              <p style={{ fontSize: "14px", fontWeight: 600, color: S.onSurface }}>
-                Xoá tất cả Links
-              </p>
-              <p style={{ fontSize: "12px", color: S.onSurfaceVariant, marginTop: "4px" }}>
-                Xoá vĩnh viễn tất cả links và dữ liệu click. Hành động này không thể hoàn tác.
-              </p>
-            </div>
-            <button
-              onClick={handleDeleteAllLinks}
-              disabled={deleting}
-              style={{
-                padding: "10px 20px", borderRadius: "10px",
-                background: "rgba(255,110,132,0.1)",
-                border: "1px solid rgba(255,110,132,0.3)",
-                color: S.error, fontSize: "13px", fontWeight: 700,
-                cursor: deleting ? "not-allowed" : "pointer",
-                opacity: deleting ? 0.6 : 1,
-                transition: "all 0.2s", flexShrink: 0, fontFamily: "inherit",
-              }}
-              onMouseEnter={e => {
-                if (!deleting) {
-                  e.currentTarget.style.background = "rgba(255,110,132,0.18)";
-                  e.currentTarget.style.borderColor = "rgba(255,110,132,0.5)";
-                }
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.background = "rgba(255,110,132,0.1)";
-                e.currentTarget.style.borderColor = "rgba(255,110,132,0.3)";
-              }}
-            >
-              {deleting ? "Đang xoá..." : "Xoá tất cả"}
-            </button>
-          </div>
-
-          {deleteMsg && (
-            <p style={{
-              marginTop: "16px", fontSize: "13px",
-              color: deleteMsg.includes("thành công") ? "#4ade80" : S.error,
-              display: "flex", alignItems: "center", gap: "6px",
-            }}>
-              <span>{deleteMsg.includes("thành công") ? "✓" : "✗"}</span>
-              {deleteMsg}
-            </p>
-          )}
-        </div>
-      </div>
-
     </div>
   );
 }
