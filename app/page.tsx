@@ -7,24 +7,20 @@ export default function LandingPage() {
       {/* Nav */}
       <nav style={{
         padding: "0 32px",
-        height: "56px",
+        height: "64px",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        borderBottom: "1px solid var(--border)",
         position: "sticky",
         top: 0,
-        background: "var(--bg)",
+        background: "rgba(14,14,16,0.85)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
+        boxShadow: "0 1px 0 rgba(72,71,74,0.1)",
         zIndex: 50,
       }}>
-        <div className="display-font" style={{
-          fontSize: "18px",
-          fontWeight: 700,
-          color: "var(--accent)",
-          letterSpacing: "-0.04em",
-          fontStyle: "italic",
-        }}>
-          ls·
+        <div style={{ fontSize: "22px", fontWeight: 900, letterSpacing: "-0.05em" }}>
+          <span style={{ color: "#f9f5f8" }}>ls</span><span style={{ color: "#bd9dff" }}>/</span>
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>

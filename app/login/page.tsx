@@ -15,67 +15,68 @@ function LoginContent() {
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      background: "var(--bg)",
+      background: "#0e0e10",
       padding: "24px",
+      position: "relative",
+      overflow: "hidden",
     }}>
-      <div className="scale-in" style={{ width: "100%", maxWidth: "360px" }}>
+      {/* Background glows */}
+      <div style={{
+        position: "absolute", top: "20%", left: "30%",
+        width: "400px", height: "400px",
+        background: "rgba(189,157,255,0.06)", borderRadius: "50%",
+        filter: "blur(80px)", pointerEvents: "none",
+      }} />
+      <div style={{
+        position: "absolute", bottom: "20%", right: "25%",
+        width: "300px", height: "300px",
+        background: "rgba(195,139,245,0.04)", borderRadius: "50%",
+        filter: "blur(60px)", pointerEvents: "none",
+      }} />
+
+      <div className="scale-in" style={{ width: "100%", maxWidth: "400px", position: "relative", zIndex: 1 }}>
 
         {/* Logo */}
-        <Link href="/" style={{ display: "flex", justifyContent: "center", marginBottom: "36px", textDecoration: "none" }}>
-          <span className="display-font" style={{
-            fontSize: "26px",
-            fontWeight: 700,
-            fontStyle: "italic",
-            color: "var(--accent)",
-            letterSpacing: "-0.04em",
-          }}>ls·</span>
+        <Link href="/" style={{ display: "flex", justifyContent: "center", marginBottom: "40px", textDecoration: "none" }}>
+          <span style={{ fontSize: "28px", fontWeight: 900, letterSpacing: "-0.05em" }}>
+            <span style={{ color: "#f9f5f8" }}>ls</span><span style={{ color: "#bd9dff" }}>/</span>
+          </span>
         </Link>
 
         {/* Card */}
-        <div className="card" style={{ padding: "32px" }}>
+        <div className="glass-card ghost-border" style={{
+          padding: "40px", borderRadius: "24px",
+          boxShadow: "0 40px 80px rgba(189,157,255,0.1)",
+        }}>
           <h1 style={{
-            fontSize: "20px",
-            fontWeight: 600,
-            color: "var(--text)",
-            marginBottom: "6px",
-            letterSpacing: "-0.02em",
+            fontSize: "26px", fontWeight: 900, letterSpacing: "-0.04em",
+            color: "#f9f5f8", marginBottom: "6px",
           }}>
             Chào mừng trở lại
           </h1>
           <p style={{
-            fontSize: "13px",
-            color: "var(--text-secondary)",
-            marginBottom: "28px",
-            lineHeight: 1.6,
+            fontSize: "14px", color: "#adaaad",
+            marginBottom: "32px", lineHeight: 1.6, fontWeight: 500,
           }}>
             Đăng nhập để quản lý links của bạn
           </p>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
 
             {/* GitHub */}
             <button
               onClick={() => signIn("github", { callbackUrl })}
               style={{
-                width: "100%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "10px",
-                padding: "11px 16px",
-                background: "var(--text)",
-                border: "1px solid transparent",
-                borderRadius: "9px",
-                color: "var(--bg)",
-                fontSize: "13px",
-                fontWeight: 600,
-                cursor: "pointer",
-                transition: "opacity 0.15s, transform 0.1s",
-                fontFamily: "var(--font-sans), sans-serif",
-                letterSpacing: "-0.01em",
+                width: "100%", display: "flex", alignItems: "center",
+                justifyContent: "center", gap: "10px",
+                padding: "14px 16px",
+                background: "#f9f5f8", border: "none", borderRadius: "12px",
+                color: "#0e0e10", fontSize: "14px", fontWeight: 700,
+                cursor: "pointer", transition: "opacity 0.2s, transform 0.15s",
+                fontFamily: "inherit",
               }}
               onMouseEnter={e => {
-                e.currentTarget.style.opacity = "0.85";
+                e.currentTarget.style.opacity = "0.9";
                 e.currentTarget.style.transform = "translateY(-1px)";
               }}
               onMouseLeave={e => {
@@ -90,44 +91,37 @@ function LoginContent() {
             </button>
 
             {/* Divider */}
-            <div style={{ display: "flex", alignItems: "center", gap: "12px", margin: "2px 0" }}>
-              <div style={{ flex: 1, height: "1px", background: "var(--border)" }} />
-              <span style={{ fontSize: "11px", color: "var(--text-tertiary)", letterSpacing: "0.04em" }}>HOẶC</span>
-              <div style={{ flex: 1, height: "1px", background: "var(--border)" }} />
+            <div style={{ display: "flex", alignItems: "center", gap: "12px", margin: "4px 0" }}>
+              <div style={{ flex: 1, height: "1px", background: "rgba(72,71,74,0.2)" }} />
+              <span style={{ fontSize: "10px", color: "rgba(173,170,173,0.4)", letterSpacing: "0.08em", fontWeight: 600 }}>HOẶC</span>
+              <div style={{ flex: 1, height: "1px", background: "rgba(72,71,74,0.2)" }} />
             </div>
 
             {/* Google */}
             <button
               onClick={() => signIn("google", { callbackUrl })}
               style={{
-                width: "100%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "10px",
-                padding: "10px 16px",
-                background: "transparent",
-                border: "1px solid var(--border)",
-                borderRadius: "9px",
-                color: "var(--text)",
-                fontSize: "13px",
-                fontWeight: 500,
-                cursor: "pointer",
-                transition: "border-color 0.15s, background 0.15s, transform 0.1s",
-                fontFamily: "var(--font-sans), sans-serif",
+                width: "100%", display: "flex", alignItems: "center",
+                justifyContent: "center", gap: "10px",
+                padding: "13px 16px",
+                background: "transparent", border: "1px solid rgba(72,71,74,0.2)",
+                borderRadius: "12px", color: "#f9f5f8", fontSize: "14px",
+                fontWeight: 600, cursor: "pointer",
+                transition: "border-color 0.2s, background 0.2s, transform 0.15s",
+                fontFamily: "inherit",
               }}
               onMouseEnter={e => {
-                e.currentTarget.style.borderColor = "var(--border-strong)";
-                e.currentTarget.style.background = "var(--bg-subtle)";
+                e.currentTarget.style.borderColor = "rgba(72,71,74,0.5)";
+                e.currentTarget.style.background = "#2c2c2f";
                 e.currentTarget.style.transform = "translateY(-1px)";
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.borderColor = "var(--border)";
+                e.currentTarget.style.borderColor = "rgba(72,71,74,0.2)";
                 e.currentTarget.style.background = "transparent";
                 e.currentTarget.style.transform = "translateY(0)";
               }}
             >
-              <svg width="15" height="15" viewBox="0 0 24 24">
+              <svg width="16" height="16" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                 <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
@@ -139,14 +133,11 @@ function LoginContent() {
         </div>
 
         <p style={{
-          marginTop: "20px",
-          textAlign: "center",
-          fontSize: "12px",
-          color: "var(--text-tertiary)",
-          lineHeight: 1.6,
+          marginTop: "24px", textAlign: "center",
+          fontSize: "12px", color: "rgba(173,170,173,0.4)", lineHeight: 1.6,
         }}>
           Bằng cách đăng nhập, bạn đồng ý với{" "}
-          <span style={{ color: "var(--text-secondary)", textDecoration: "underline", textDecorationColor: "var(--border-strong)", cursor: "pointer" }}>
+          <span style={{ color: "#adaaad", textDecoration: "underline", textDecorationColor: "rgba(72,71,74,0.4)", cursor: "pointer" }}>
             điều khoản sử dụng
           </span>
         </p>
