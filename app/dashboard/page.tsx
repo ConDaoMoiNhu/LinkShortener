@@ -2,8 +2,12 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import DashboardClient from "./DashboardClient";
 
+const DEV_USER = { name: "Dev User", email: "dev@localhost", image: null };
+
 export default async function DashboardPage() {
+  if (process.env.NODE_ENV === "development") {
+    return <DashboardClient user={DEV_USER} />;
+  }
   const session = await getServerSession(authOptions);
-  // layout.tsx already guards auth; session is guaranteed here
   return <DashboardClient user={session!.user} />;
 }
