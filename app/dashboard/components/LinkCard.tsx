@@ -7,6 +7,7 @@ interface LinkItem {
   slug: string;
   originalUrl: string;
   createdAt: string;
+  expiresAt?: string | null;
   _count: { clicks: number };
 }
 
@@ -14,6 +15,66 @@ interface Props {
   link: LinkItem;
   baseUrl: string;
   onDeleted: () => void;
+}
+
+function StatusBadge({ expiresAt }: { expiresAt?: string | null }) {
+  const badgeBase: React.CSSProperties = {
+    fontSize: "9px",
+    fontWeight: 700,
+    letterSpacing: "0.08em",
+    padding: "2px 8px",
+    borderRadius: "4px",
+    flexShrink: 0,
+    userSelect: "none",
+  };
+
+  if (!expiresAt) {
+    // No expiry → always Active
+    return (
+      <span style={{
+        ...badgeBase,
+        background: "rgba(74,222,128,0.12)",
+        color: "#4ade80",
+      }}>
+        ACTIVE
+      </span>
+    );
+  }
+
+  const expDate = new Date(expiresAt);
+  const now = new Date();
+
+  if (expDate < now) {
+    // Past → Expired
+    return (
+      <span style={{
+        ...badgeBase,
+        background: "rgba(255,110,132,0.12)",
+        color: "#ff6e84",
+      }}>
+        EXPIRED
+      </span>
+    );
+  }
+
+  // Future expiry → Active with tooltip
+  const formatted = expDate.toLocaleDateString("vi-VN", {
+    day: "2-digit", month: "2-digit", year: "numeric",
+  });
+
+  return (
+    <span
+      title={`Hết hạn: ${formatted}`}
+      style={{
+        ...badgeBase,
+        background: "rgba(74,222,128,0.12)",
+        color: "#4ade80",
+        cursor: "default",
+      }}
+    >
+      ACTIVE
+    </span>
+  );
 }
 
 export default function LinkCard({ link, baseUrl, onDeleted }: Props) {
@@ -36,14 +97,11 @@ export default function LinkCard({ link, baseUrl, onDeleted }: Props) {
   }
 
   const date = new Date(link.createdAt).toLocaleDateString("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
+    day: "2-digit", month: "2-digit", year: "numeric",
   });
 
   return (
     <div
-      className="link-row"
       style={{
         display: "flex", alignItems: "center", gap: "16px",
         padding: "18px 20px", borderRadius: "14px",
@@ -58,7 +116,7 @@ export default function LinkCard({ link, baseUrl, onDeleted }: Props) {
     >
       {/* URL info */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "4px", flexWrap: "wrap" }}>
           <a
             href={shortUrl}
             target="_blank"
@@ -67,13 +125,13 @@ export default function LinkCard({ link, baseUrl, onDeleted }: Props) {
               textDecoration: "none", overflow: "hidden",
               textOverflow: "ellipsis", whiteSpace: "nowrap",
               fontSize: "15px", fontWeight: 700, letterSpacing: "-0.02em",
-              color: "#f9f5f8",
-              display: "block",
+              color: "#f9f5f8", display: "block",
             }}
           >
             <span style={{ color: "rgba(249,245,248,0.35)", fontWeight: 400 }}>{domain}/</span>
             <span style={{ color: "#bd9dff" }}>{link.slug}</span>
           </a>
+          <StatusBadge expiresAt={link.expiresAt} />
         </div>
         <p style={{
           fontSize: "12px", color: "rgba(173,170,173,0.5)",
@@ -83,7 +141,7 @@ export default function LinkCard({ link, baseUrl, onDeleted }: Props) {
         </p>
       </div>
 
-      {/* Stats */}
+      {/* Clicks */}
       <div style={{
         flexShrink: 0, textAlign: "center",
         padding: "0 20px", borderLeft: "1px solid rgba(72,71,74,0.1)",
@@ -94,9 +152,10 @@ export default function LinkCard({ link, baseUrl, onDeleted }: Props) {
           color: "rgba(173,170,173,0.5)", fontWeight: 700, marginBottom: "4px",
         }}>Clicks</p>
         <p style={{
-          fontSize: "20px", fontWeight: 900, letterSpacing: "-0.04em",
-          color: "#f9f5f8",
-        }}>{link._count.clicks}</p>
+          fontSize: "20px", fontWeight: 900, letterSpacing: "-0.04em", color: "#f9f5f8",
+        }}>
+          {link._count.clicks}
+        </p>
       </div>
 
       {/* Date */}

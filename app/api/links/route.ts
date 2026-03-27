@@ -9,6 +9,7 @@ import { generateSlug, isValidUrl } from "@/lib/utils";
 const CreateLinkSchema = z.object({
   originalUrl: z.string().refine(isValidUrl, { message: "URL không hợp lệ" }),
   customSlug: z.string().min(3).max(50).regex(/^[a-zA-Z0-9-_]+$/).optional(),
+  expiresAt: z.string().optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -35,7 +36,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { originalUrl, customSlug } = parsed.data;
+  const { originalUrl, customSlug, expiresAt } = parsed.data;
   const slug = customSlug ?? generateSlug();
 
   // Kiểm tra slug đã tồn tại chưa
@@ -49,6 +50,7 @@ export async function POST(request: NextRequest) {
       slug,
       originalUrl,
       userId: session?.user?.id ?? null,
+      expiresAt: expiresAt ? new Date(expiresAt) : null,
     },
   });
 
@@ -56,4 +58,15 @@ export async function POST(request: NextRequest) {
   await setSlugUrl(slug, originalUrl);
 
   return NextResponse.json(link, { status: 201 });
+}
+
+export async function DELETE(_request: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  await db.link.deleteMany({ where: { userId: session.user.id } });
+
+  return NextResponse.json({ ok: true });
 }
