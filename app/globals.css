@@ -204,3 +204,46 @@ body {
   border-color: rgba(189, 157, 255, 0.5);
   box-shadow: 0 0 0 4px rgba(189, 157, 255, 0.08);
 }
+
+/* ── Dashboard layout ─────────────────────────── */
+@media (min-width: 768px) {
+  .dashboard-main {
+    margin-left: 240px;
+  }
+}
+
+/* ── Responsive ───────────────────────────────── */
+@media (max-width: 600px) {
+  .shorten-row {
+    flex-direction: column !important;
+  }
+  .shorten-row .input-base {
+    width: 100% !important;
+  }
+  .shorten-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .result-card {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 16px !important;
+  }
+  .result-actions {
+    width: 100%;
+    display: flex;
+    gap: 8px;
+  }
+  .result-actions button {
+    flex: 1;
+  }
+  .stats-row {
+    gap: 24px !important;
+  }
+}
+
+@media (max-width: 400px) {
+  .hero-title {
+    font-size: clamp(2rem, 10vw, 2.8rem) !important;
+  }
+}

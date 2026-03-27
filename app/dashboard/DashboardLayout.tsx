@@ -263,7 +263,7 @@ export default function DashboardLayout({
 
       {/* ── Main content ── */}
       <main
-        className="md:ml-[240px]"
+        className="dashboard-main"
         style={{ paddingTop: "64px", paddingBottom: "80px" }}
       >
         {children}
