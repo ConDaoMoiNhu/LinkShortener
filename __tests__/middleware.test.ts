@@ -1,16 +1,7 @@
 import { describe, it, expect } from "vitest";
+import { shouldHandleRedirect } from "../proxy";
 
-// Unit test logic extract từ middleware
-function shouldHandleRedirect(pathname: string): boolean {
-  const excluded = ["/api", "/dashboard", "/login", "/_next", "/favicon.ico"];
-  return (
-    pathname !== "/" &&
-    !excluded.some((p) => pathname.startsWith(p)) &&
-    pathname.length > 1
-  );
-}
-
-describe("middleware redirect logic", () => {
+describe("proxy redirect logic", () => {
   it("handles short slug paths", () => {
     expect(shouldHandleRedirect("/abc123")).toBe(true);
   });
@@ -29,5 +20,13 @@ describe("middleware redirect logic", () => {
 
   it("ignores login page", () => {
     expect(shouldHandleRedirect("/login")).toBe(false);
+  });
+
+  it("ignores _next paths", () => {
+    expect(shouldHandleRedirect("/_next/static/chunk.js")).toBe(false);
+  });
+
+  it("ignores favicon", () => {
+    expect(shouldHandleRedirect("/favicon.ico")).toBe(false);
   });
 });

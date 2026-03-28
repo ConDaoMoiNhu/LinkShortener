@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { X, Eye, EyeOff } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, Copy, Check } from "lucide-react";
 
 interface Props {
   onClose: () => void;
@@ -11,10 +11,16 @@ export default function CreateLinkModal({ onClose }: Props) {
   const [destinationUrl, setDestinationUrl] = useState("");
   const [slug, setSlug] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [result, setResult] = useState<{ slug: string } | null>(null);
+  const [result, setResult] = useState<{ slug: string; shortUrl: string } | null>(null);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [origin, setOrigin] = useState("");
+
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
 
   const handleCreate = async () => {
     if (!destinationUrl) return;
@@ -35,14 +41,27 @@ export default function CreateLinkModal({ onClose }: Props) {
         setError(data.error ?? "Lỗi tạo link");
       } else {
         const data = await res.json();
-        setResult(data);
-        setTimeout(onClose, 1500);
+        const shortUrl = `${window.location.origin}/${data.slug}`;
+        setResult({ slug: data.slug, shortUrl });
+
+        // Fetch QR code
+        fetch(`/api/qr?url=${encodeURIComponent(shortUrl)}`)
+          .then((r) => r.json())
+          .then((d) => setQrDataUrl(d.qr ?? null))
+          .catch(() => {});
       }
     } catch {
       setError("Network error");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCopy = () => {
+    if (!result) return;
+    navigator.clipboard.writeText(result.shortUrl).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -65,78 +84,121 @@ export default function CreateLinkModal({ onClose }: Props) {
         </div>
 
         <div className="px-8 pb-8 flex flex-col gap-6 relative z-10">
-          <div className="flex flex-col gap-2">
-            <label className="text-[#adaaad] text-[11px] font-bold tracking-[1.2px] uppercase">
-              Destination URL *
-            </label>
-            <div className="bg-black rounded-lg border border-[rgba(72,71,74,0.15)] px-4 py-[18px]">
-              <input
-                type="url"
-                placeholder="https://your-destination-url.com"
-                value={destinationUrl}
-                onChange={(e) => setDestinationUrl(e.target.value)}
-                className="bg-transparent text-[#f9f5f8] text-base outline-none w-full placeholder-[rgba(173,170,173,0.4)]"
-              />
-            </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-6">
-            <div className="flex flex-col gap-2">
-              <label className="text-[#adaaad] text-[11px] font-bold tracking-[1.2px] uppercase">
-                Custom Slug
-              </label>
-              <div className="bg-black rounded-lg border border-[rgba(72,71,74,0.15)] flex items-center">
-                <span className="pl-4 text-[rgba(173,170,173,0.5)] text-sm font-medium shrink-0">sn.lk/</span>
-                <input
-                  type="text"
-                  placeholder="my-slug"
-                  value={slug}
-                  onChange={(e) => setSlug(e.target.value)}
-                  className="bg-transparent text-[#f9f5f8] text-sm outline-none flex-1 px-2 py-[18px] placeholder-[rgba(173,170,173,0.4)]"
+          {/* Result state: show short URL + QR */}
+          {result ? (
+            <div className="flex flex-col items-center gap-6 py-2">
+              {qrDataUrl ? (
+                <img
+                  src={qrDataUrl}
+                  alt="QR code"
+                  className="w-40 h-40 rounded-2xl border border-[rgba(189,157,255,0.2)]"
                 />
+              ) : (
+                <div className="w-40 h-40 rounded-2xl border border-[rgba(72,71,74,0.2)] bg-[#19191c] flex items-center justify-center">
+                  <div className="w-6 h-6 border-2 border-[#bd9dff] border-t-transparent rounded-full animate-spin" />
+                </div>
+              )}
+
+              <div className="w-full text-center">
+                <p className="text-[#adaaad] text-xs mb-2">Link đã tạo thành công</p>
+                <div className="flex items-center gap-2 bg-[#131315] border border-[rgba(189,157,255,0.2)] rounded-xl px-4 py-3">
+                  <span className="text-[#bd9dff] font-bold text-sm flex-1 text-left truncate">
+                    {result.shortUrl}
+                  </span>
+                  <button
+                    onClick={handleCopy}
+                    className="flex items-center gap-1.5 shrink-0 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"
+                    style={copied
+                      ? { background: "rgba(189,157,255,0.15)", color: "#bd9dff" }
+                      : { background: "#2c2c2f", color: "#f9f5f8" }}
+                  >
+                    {copied ? <Check size={12} /> : <Copy size={12} />}
+                    {copied ? "Đã copy" : "Copy"}
+                  </button>
+                </div>
               </div>
+
+              <button
+                onClick={onClose}
+                className="w-full py-3 rounded-xl font-bold text-sm text-black transition-opacity hover:opacity-90"
+                style={{ backgroundImage: "linear-gradient(135deg, rgb(189,157,255) 0%, rgb(138,76,252) 100%)" }}
+              >
+                Xong
+              </button>
             </div>
-            <div className="flex flex-col gap-2">
-              <label className="text-[#adaaad] text-[11px] font-bold tracking-[1.2px] uppercase">
-                Expiry Date
-              </label>
-              <div className="bg-black rounded-lg border border-[rgba(72,71,74,0.15)] px-4 py-[14px] flex items-center gap-2">
-                <input
-                  type="date"
-                  value={expiryDate}
-                  onChange={(e) => setExpiryDate(e.target.value)}
-                  className="bg-transparent text-[#f9f5f8] text-base outline-none flex-1 [color-scheme:dark]"
-                />
+          ) : (
+            <>
+              <div className="flex flex-col gap-2">
+                <label className="text-[#adaaad] text-[11px] font-bold tracking-[1.2px] uppercase">
+                  Destination URL *
+                </label>
+                <div className="bg-black rounded-lg border border-[rgba(72,71,74,0.15)] px-4 py-[18px]">
+                  <input
+                    type="url"
+                    placeholder="https://your-destination-url.com"
+                    value={destinationUrl}
+                    onChange={(e) => setDestinationUrl(e.target.value)}
+                    className="bg-transparent text-[#f9f5f8] text-base outline-none w-full placeholder-[rgba(173,170,173,0.4)]"
+                  />
+                </div>
               </div>
-            </div>
-          </div>
 
-          {error && (
-            <p className="text-[#ff6060] text-sm">{error}</p>
+              <div className="grid grid-cols-2 gap-6">
+                <div className="flex flex-col gap-2">
+                  <label className="text-[#adaaad] text-[11px] font-bold tracking-[1.2px] uppercase">
+                    Custom Slug
+                  </label>
+                  <div className="bg-black rounded-lg border border-[rgba(72,71,74,0.15)] flex items-center overflow-hidden">
+                    <span className="pl-4 text-[rgba(173,170,173,0.5)] text-xs font-medium shrink-0 truncate max-w-[100px]">
+                      {origin ? origin.replace(/^https?:\/\//, "") + "/" : "…/"}
+                    </span>
+                    <input
+                      type="text"
+                      placeholder="my-slug"
+                      value={slug}
+                      onChange={(e) => setSlug(e.target.value)}
+                      className="bg-transparent text-[#f9f5f8] text-sm outline-none flex-1 px-2 py-[18px] placeholder-[rgba(173,170,173,0.4)]"
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="text-[#adaaad] text-[11px] font-bold tracking-[1.2px] uppercase">
+                    Expiry Date
+                  </label>
+                  <div className="bg-black rounded-lg border border-[rgba(72,71,74,0.15)] px-4 py-[14px] flex items-center gap-2">
+                    <input
+                      type="date"
+                      value={expiryDate}
+                      onChange={(e) => setExpiryDate(e.target.value)}
+                      className="bg-transparent text-[#f9f5f8] text-base outline-none flex-1 [color-scheme:dark]"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {error && (
+                <p className="text-[#ff6060] text-sm">{error}</p>
+              )}
+
+              <div className="flex gap-4 items-center pt-4 border-t border-[rgba(72,71,74,0.1)]">
+                <button
+                  onClick={handleCreate}
+                  disabled={loading}
+                  className="flex-1 py-4 rounded-lg font-bold text-sm text-[#3c0089] text-center transition-opacity disabled:opacity-70 shadow-[0_20px_40px_0_rgba(189,157,255,0.2)]"
+                  style={{ backgroundImage: "linear-gradient(135deg, rgb(189,157,255) 0%, rgb(138,76,252) 100%)" }}
+                >
+                  {loading ? "Creating..." : "Create Link"}
+                </button>
+                <button
+                  onClick={onClose}
+                  className="px-8 py-4 rounded-lg text-[#adaaad] font-bold text-sm hover:text-[#f9f5f8] transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </>
           )}
-
-          {result && (
-            <p className="text-[#bd9dff] text-sm font-bold">
-              ✓ Link tạo thành công: /{result.slug}
-            </p>
-          )}
-
-          <div className="flex gap-4 items-center pt-4 border-t border-[rgba(72,71,74,0.1)]">
-            <button
-              onClick={handleCreate}
-              disabled={loading || !!result}
-              className="flex-1 py-4 rounded-lg font-bold text-sm text-[#3c0089] text-center transition-opacity disabled:opacity-70 shadow-[0_20px_40px_0_rgba(189,157,255,0.2)]"
-              style={{ backgroundImage: "linear-gradient(135deg, rgb(189,157,255) 0%, rgb(138,76,252) 100%)" }}
-            >
-              {loading ? "Creating..." : result ? "Created! ✓" : "Create Link"}
-            </button>
-            <button
-              onClick={onClose}
-              className="px-8 py-4 rounded-lg text-[#adaaad] font-bold text-sm hover:text-[#f9f5f8] transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
         </div>
       </div>
     </div>

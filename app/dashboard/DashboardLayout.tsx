@@ -263,18 +263,18 @@ export default function DashboardLayout({
 
       {/* ── Main content ── */}
       <main
-        className="dashboard-main"
-        style={{ paddingTop: "64px", paddingBottom: "80px" }}
+        className="dashboard-main pb-24 md:pb-8"
+        style={{ paddingTop: "64px" }}
       >
         {children}
       </main>
 
       {/* ── Mobile bottom nav ── */}
       <nav
-        className="md:hidden"
+        className="flex md:hidden"
         style={{
           position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50,
-          display: "flex", alignItems: "center", justifyContent: "space-around",
+          alignItems: "center", justifyContent: "space-around",
           padding: "10px 8px 20px",
           background: "rgba(14,14,16,0.96)", backdropFilter: "blur(20px)",
           WebkitBackdropFilter: "blur(20px)",
