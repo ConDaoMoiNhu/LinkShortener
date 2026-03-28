@@ -2,18 +2,20 @@
 
 import { useState, useEffect } from "react";
 import { X, Copy, Check } from "lucide-react";
+import type { CachedLink } from "@/lib/links-cache";
 
 interface Props {
   onClose: () => void;
+  onCreated?: (link: CachedLink) => void;
 }
 
-export default function CreateLinkModal({ onClose }: Props) {
+export default function CreateLinkModal({ onClose, onCreated }: Props) {
   const [destinationUrl, setDestinationUrl] = useState("");
   const [slug, setSlug] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [result, setResult] = useState<{ slug: string; shortUrl: string } | null>(null);
+  const [result, setResult] = useState<{ slug: string; shortUrl: string; link: CachedLink } | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [origin, setOrigin] = useState("");
@@ -42,7 +44,8 @@ export default function CreateLinkModal({ onClose }: Props) {
       } else {
         const data = await res.json();
         const shortUrl = `${window.location.origin}/${data.slug}`;
-        setResult({ slug: data.slug, shortUrl });
+        const link: CachedLink = { ...data, _count: { clicks: 0 } };
+        setResult({ slug: data.slug, shortUrl, link });
 
         // Fetch QR code
         fetch(`/api/qr?url=${encodeURIComponent(shortUrl)}`)
@@ -120,7 +123,7 @@ export default function CreateLinkModal({ onClose }: Props) {
               </div>
 
               <button
-                onClick={onClose}
+                onClick={() => { if (result) onCreated?.(result.link); onClose(); }}
                 className="w-full py-3 rounded-xl font-bold text-sm text-black transition-opacity hover:opacity-90"
                 style={{ backgroundImage: "linear-gradient(135deg, rgb(189,157,255) 0%, rgb(138,76,252) 100%)" }}
               >

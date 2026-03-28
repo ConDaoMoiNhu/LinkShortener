@@ -1,23 +1,17 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { Copy, QrCode, Trash2, ChevronLeft, ChevronRight, Check } from "lucide-react";
-import CreateLinkModal from "./components/CreateLinkModal";
+import { useEffect, useState, useCallback, useMemo } from "react";
+import dynamic from "next/dynamic";
+import { Copy, Trash2, ChevronLeft, ChevronRight, Check } from "lucide-react";
+import { getLinksCache, setLinksCache, invalidateLinksCache, CachedLink } from "@/lib/links-cache";
+
+const CreateLinkModal = dynamic(() => import("./components/CreateLinkModal"), { ssr: false });
 
 interface User {
   id?: string;
   name?: string | null;
   email?: string | null;
   image?: string | null;
-}
-
-interface Link {
-  id: string;
-  slug: string;
-  originalUrl: string;
-  createdAt: string;
-  expiresAt: string | null;
-  _count: { clicks: number };
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -32,7 +26,7 @@ const AVATAR_COLORS = [
   { bg: "#2c2c2f", text: "#f9f5f8" },
 ];
 
-function getStatus(link: Link): "ACTIVE" | "EXPIRED" {
+function getStatus(link: CachedLink): "ACTIVE" | "EXPIRED" {
   if (link.expiresAt && new Date(link.expiresAt) < new Date()) return "EXPIRED";
   return "ACTIVE";
 }
@@ -43,8 +37,8 @@ function formatClicks(n: number): string {
 }
 
 export default function DashboardClient({ user }: { user: User }) {
-  const [links, setLinks] = useState<Link[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [links, setLinks] = useState<CachedLink[]>(() => getLinksCache() ?? []);
+  const [loading, setLoading] = useState(() => getLinksCache() === null);
   const [filter, setFilter] = useState<"All" | "Active" | "Expired">("All");
   const [page, setPage] = useState(1);
   const [showModal, setShowModal] = useState(false);
@@ -53,42 +47,60 @@ export default function DashboardClient({ user }: { user: User }) {
 
   const fetchLinks = useCallback(async () => {
     const res = await fetch("/api/links");
-    if (res.ok) setLinks(await res.json());
+    if (res.ok) {
+      const data: CachedLink[] = await res.json();
+      setLinks(data);
+      setLinksCache(data);
+    }
     setLoading(false);
   }, []);
 
   useEffect(() => { fetchLinks(); }, [fetchLinks]);
 
-  const filtered = links.filter(l => {
+  const filtered = useMemo(() => links.filter(l => {
     if (filter === "All") return true;
     const s = getStatus(l);
     return filter === "Active" ? s === "ACTIVE" : s === "EXPIRED";
-  });
+  }), [links, filter]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
-  const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
-  const totalClicks = links.reduce((s, l) => s + (l._count?.clicks ?? 0), 0);
-  const activeCount = links.filter(l => getStatus(l) === "ACTIVE").length;
-
-  const handleCopy = (slug: string) => {
-    const url = `${window.location.origin}/${slug}`;
-    navigator.clipboard.writeText(url).catch(() => {});
-    setCopied(slug);
-    setTimeout(() => setCopied(null), 2000);
-  };
-
-  const handleDelete = async (id: string) => {
-    await fetch(`/api/links/${id}`, { method: "DELETE" });
-    fetchLinks();
-  };
-
-  const avatarStack = [
+  const totalPages = useMemo(() => Math.max(1, Math.ceil(filtered.length / PER_PAGE)), [filtered.length]);
+  const paginated = useMemo(() => filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE), [filtered, page]);
+  const totalClicks = useMemo(() => links.reduce((s, l) => s + (l._count?.clicks ?? 0), 0), [links]);
+  const activeCount = useMemo(() => links.filter(l => getStatus(l) === "ACTIVE").length, [links]);
+  const avatarStack = useMemo(() => [
     ...links.slice(0, 3).map((l, i) => ({
       initials: l.slug.slice(0, 2).toUpperCase(),
       ...AVATAR_COLORS[i % AVATAR_COLORS.length],
     })),
     links.length > 3 ? { initials: `+${links.length - 3}`, ...AVATAR_COLORS[3] } : null,
-  ].filter(Boolean) as { initials: string; bg: string; text: string }[];
+  ].filter(Boolean) as { initials: string; bg: string; text: string }[], [links]);
+
+  const handleCopy = (slug: string) => {
+    navigator.clipboard.writeText(`${window.location.origin}/${slug}`).catch(() => {});
+    setCopied(slug);
+    setTimeout(() => setCopied(null), 2000);
+  };
+
+  const handleDelete = useCallback(async (id: string) => {
+    const snapshot = links;
+    setLinks(prev => prev.filter(l => l.id !== id));
+    invalidateLinksCache();
+    try {
+      const res = await fetch(`/api/links/${id}`, { method: "DELETE" });
+      if (!res.ok) setLinks(snapshot);
+      else setLinksCache(links.filter(l => l.id !== id));
+    } catch {
+      setLinks(snapshot);
+    }
+  }, [links]);
+
+  const handleCreated = useCallback((link: CachedLink) => {
+    setLinks(prev => {
+      const updated = [link, ...prev];
+      setLinksCache(updated);
+      return updated;
+    });
+  }, []);
 
   return (
     <>
@@ -271,7 +283,10 @@ export default function DashboardClient({ user }: { user: User }) {
       </div>
 
       {showModal && (
-        <CreateLinkModal onClose={() => { setShowModal(false); fetchLinks(); }} />
+        <CreateLinkModal
+          onClose={() => setShowModal(false)}
+          onCreated={handleCreated}
+        />
       )}
     </>
   );

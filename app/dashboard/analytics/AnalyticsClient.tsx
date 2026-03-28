@@ -1,18 +1,11 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import {
-  AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip,
-  ResponsiveContainer, CartesianGrid, Cell,
+  AreaChart, Area, XAxis, YAxis, Tooltip,
+  ResponsiveContainer, CartesianGrid,
 } from "recharts";
-
-interface LinkItem {
-  id: string;
-  slug: string;
-  url: string;
-  createdAt: string;
-  _count: { clicks: number };
-}
+import { getLinksCache, setLinksCache, CachedLink } from "@/lib/links-cache";
 
 interface AnalyticsData {
   totalClicks: number;
@@ -45,21 +38,22 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export default function AnalyticsClient() {
-  const [links, setLinks] = useState<LinkItem[]>([]);
-  const [selected, setSelected] = useState<LinkItem | null>(null);
+  const [links, setLinks] = useState<CachedLink[]>(() => getLinksCache() ?? []);
+  const [selected, setSelected] = useState<CachedLink | null>(() => getLinksCache()?.[0] ?? null);
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => getLinksCache() === null);
   const [activeDevice, setActiveDevice] = useState(0);
 
   const fetchLinks = useCallback(async () => {
     const res = await fetch("/api/links");
     if (res.ok) {
-      const data: LinkItem[] = await res.json();
+      const data: CachedLink[] = await res.json();
       setLinks(data);
-      if (data.length > 0) setSelected(data[0]);
+      setLinksCache(data);
+      if (data.length > 0 && !selected) setSelected(data[0]);
     }
     setLoading(false);
-  }, []);
+  }, [selected]);
 
   useEffect(() => { fetchLinks(); }, [fetchLinks]);
 
@@ -71,8 +65,7 @@ export default function AnalyticsClient() {
       .catch(() => setAnalytics(null));
   }, [selected]);
 
-  // Build area chart data from byDate
-  const areaData = analytics
+  const areaData = useMemo(() => analytics
     ? Object.entries(analytics.byDate)
         .sort(([a], [b]) => a.localeCompare(b))
         .slice(-13)
@@ -80,10 +73,9 @@ export default function AnalyticsClient() {
           date: new Date(date).toLocaleDateString("en-US", { day: "2-digit", month: "short" }),
           clicks,
         }))
-    : [];
+    : [], [analytics]);
 
-  // Countries
-  const topCountries = analytics
+  const topCountries = useMemo(() => analytics
     ? Object.entries(analytics.byCountry)
         .sort(([, a], [, b]) => b - a)
         .slice(0, 3)
@@ -92,25 +84,24 @@ export default function AnalyticsClient() {
           name: COUNTRY_NAMES[code] ?? code,
           flag: COUNTRY_FLAGS[code] ?? "🌐",
         }))
-    : [];
+    : [], [analytics]);
 
-  // Devices
-  const deviceTotal = analytics
-    ? Object.values(analytics.byDevice).reduce((a, b) => a + b, 0) || 1
-    : 1;
-  const deviceData = analytics
-    ? [
-        { icon: "📱", label: "Mobile", pct: Math.round(((analytics.byDevice.mobile ?? 0) / deviceTotal) * 100) },
-        { icon: "💻", label: "Desktop", pct: Math.round(((analytics.byDevice.desktop ?? 0) / deviceTotal) * 100) },
-        { icon: "🖥️", label: "Other", pct: Math.round(((analytics.byDevice.other ?? 0) / deviceTotal) * 100) },
-      ]
-    : [
-        { icon: "📱", label: "Mobile", pct: 0 },
-        { icon: "💻", label: "Desktop", pct: 0 },
-        { icon: "🖥️", label: "Other", pct: 0 },
-      ];
+  const deviceData = useMemo(() => {
+    const total = analytics ? Object.values(analytics.byDevice).reduce((a, b) => a + b, 0) || 1 : 1;
+    return analytics
+      ? [
+          { icon: "📱", label: "Mobile", pct: Math.round(((analytics.byDevice.mobile ?? 0) / total) * 100) },
+          { icon: "💻", label: "Desktop", pct: Math.round(((analytics.byDevice.desktop ?? 0) / total) * 100) },
+          { icon: "🖥️", label: "Other", pct: Math.round(((analytics.byDevice.other ?? 0) / total) * 100) },
+        ]
+      : [
+          { icon: "📱", label: "Mobile", pct: 0 },
+          { icon: "💻", label: "Desktop", pct: 0 },
+          { icon: "🖥️", label: "Other", pct: 0 },
+        ];
+  }, [analytics]);
 
-  const totalLinksClicks = links.reduce((s, l) => s + (l._count?.clicks ?? 0), 0);
+  const totalLinksClicks = useMemo(() => links.reduce((s, l) => s + (l._count?.clicks ?? 0), 0), [links]);
 
   return (
     <div className="p-4 md:p-8 max-w-[1100px]">
@@ -127,7 +118,7 @@ export default function AnalyticsClient() {
               {selected ? `/${selected.slug}` : "Analytics"}
             </h1>
             {selected && (
-              <p className="text-[#adaaad] text-sm mt-1 truncate max-w-lg">→ {selected.url}</p>
+              <p className="text-[#adaaad] text-sm mt-1 truncate max-w-lg">→ {selected.originalUrl}</p>
             )}
           </div>
           <div className="flex gap-3 items-center">
@@ -233,6 +224,7 @@ export default function AnalyticsClient() {
               src="/59c491d915420b50f25192c7f9ba93ecb1fd2747.png"
               alt="World Map"
               className="w-full h-full object-cover opacity-60"
+              loading="lazy"
             />
           </div>
           <div className="flex flex-col gap-2">

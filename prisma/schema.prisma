@@ -76,4 +76,7 @@ model Click {
   country   String?
   device    String?
   createdAt DateTime @default(now())
+
+  @@index([linkId])
+  @@index([linkId, createdAt])
 }

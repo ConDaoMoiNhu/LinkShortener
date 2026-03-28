@@ -8,7 +8,7 @@ export async function getUrlBySlug(slug: string): Promise<string | null> {
 }
 
 export async function setSlugUrl(slug: string, url: string): Promise<void> {
-  await kv.set(`${SLUG_PREFIX}${slug}`, url);
+  await kv.set(`${SLUG_PREFIX}${slug}`, url, { ex: 86400 }); // 24h TTL
 }
 
 export async function deleteSlugUrl(slug: string): Promise<void> {

@@ -1,19 +1,13 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { Copy, Trash2, ChevronLeft, ChevronRight, Check, Search, ExternalLink, QrCode } from "lucide-react";
-import CreateLinkModal from "../components/CreateLinkModal";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import dynamic from "next/dynamic";
+import { Copy, Trash2, ChevronLeft, ChevronRight, Check, Search, ExternalLink } from "lucide-react";
+import { getLinksCache, setLinksCache, invalidateLinksCache, CachedLink } from "@/lib/links-cache";
 
-interface Link {
-  id: string;
-  slug: string;
-  originalUrl: string;
-  createdAt: string;
-  expiresAt: string | null;
-  _count: { clicks: number };
-}
+const CreateLinkModal = dynamic(() => import("../components/CreateLinkModal"), { ssr: false });
 
-function getStatus(link: Link): "ACTIVE" | "EXPIRED" {
+function getStatus(link: CachedLink): "ACTIVE" | "EXPIRED" {
   if (link.expiresAt && new Date(link.expiresAt) < new Date()) return "EXPIRED";
   return "ACTIVE";
 }
@@ -31,24 +25,29 @@ function formatDate(iso: string): string {
 const PER_PAGE = 10;
 
 export default function LinksClient() {
-  const [links, setLinks] = useState<Link[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [links, setLinks] = useState<CachedLink[]>(() => getLinksCache() ?? []);
+  const [loading, setLoading] = useState(() => getLinksCache() === null);
   const [filter, setFilter] = useState<"All" | "Active" | "Expired">("All");
   const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [page, setPage] = useState(1);
   const [showModal, setShowModal] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState<string | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchLinks = useCallback(async () => {
     const res = await fetch("/api/links");
-    if (res.ok) setLinks(await res.json());
+    if (res.ok) {
+      const data: CachedLink[] = await res.json();
+      setLinks(data);
+      setLinksCache(data);
+    }
     setLoading(false);
   }, []);
 
   useEffect(() => { fetchLinks(); }, [fetchLinks]);
 
-  const filtered = links.filter(l => {
+  const filtered = useMemo(() => links.filter(l => {
     const matchesFilter =
       filter === "All" ? true :
       filter === "Active" ? getStatus(l) === "ACTIVE" :
@@ -58,10 +57,10 @@ export default function LinksClient() {
     const matchesSearch = !q || l.slug.toLowerCase().includes(q) || l.originalUrl.toLowerCase().includes(q);
 
     return matchesFilter && matchesSearch;
-  });
+  }), [links, filter, search]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
-  const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  const totalPages = useMemo(() => Math.max(1, Math.ceil(filtered.length / PER_PAGE)), [filtered.length]);
+  const paginated = useMemo(() => filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE), [filtered, page]);
 
   const handleCopy = (slug: string) => {
     navigator.clipboard.writeText(`${window.location.origin}/${slug}`).catch(() => {});
@@ -69,17 +68,35 @@ export default function LinksClient() {
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = useCallback(async (id: string) => {
     if (!confirm("Xóa link này?")) return;
-    setDeleting(id);
-    await fetch(`/api/links/${id}`, { method: "DELETE" });
-    setDeleting(null);
-    fetchLinks();
-  };
+    const snapshot = links;
+    setLinks(prev => prev.filter(l => l.id !== id));
+    invalidateLinksCache();
+    try {
+      const res = await fetch(`/api/links/${id}`, { method: "DELETE" });
+      if (!res.ok) setLinks(snapshot);
+      else setLinksCache(links.filter(l => l.id !== id));
+    } catch {
+      setLinks(snapshot);
+    }
+  }, [links]);
 
-  const handleSearch = (val: string) => {
-    setSearch(val);
-    setPage(1);
+  const handleCreated = useCallback((link: CachedLink) => {
+    setLinks(prev => {
+      const updated = [link, ...prev];
+      setLinksCache(updated);
+      return updated;
+    });
+  }, []);
+
+  const handleSearchInput = (val: string) => {
+    setSearchInput(val);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setSearch(val);
+      setPage(1);
+    }, 200);
   };
 
   const handleFilterChange = (f: "All" | "Active" | "Expired") => {
@@ -112,25 +129,23 @@ export default function LinksClient() {
 
         {/* Toolbar */}
         <div className="flex items-center gap-4 mb-6 flex-wrap">
-          {/* Search */}
           <div className="relative flex-1 min-w-[220px]">
             <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#adaaad] pointer-events-none" />
             <input
               type="text"
               placeholder="Search slug or URL…"
-              value={search}
-              onChange={e => handleSearch(e.target.value)}
+              value={searchInput}
+              onChange={e => handleSearchInput(e.target.value)}
               className="w-full bg-[#19191c] border border-[rgba(72,71,74,0.2)] rounded-lg pl-9 pr-4 py-2.5 text-[#f9f5f8] text-sm outline-none placeholder-[rgba(173,170,173,0.4)] focus:border-[rgba(189,157,255,0.4)] transition-colors"
             />
           </div>
 
-          {/* Filter tabs */}
           <div className="flex items-center gap-1 bg-[#19191c] border border-[rgba(72,71,74,0.1)] rounded-lg p-1">
             {(["All", "Active", "Expired"] as const).map((f) => (
               <button
                 key={f}
                 onClick={() => handleFilterChange(f)}
-                className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
+                className={`px-4 py-1.5 rounded-md text-xs font-bold transition-colors ${
                   filter === f
                     ? "bg-[#2c2c2f] text-[#bd9dff]"
                     : "text-[#adaaad] hover:text-[#f9f5f8]"
@@ -180,14 +195,11 @@ export default function LinksClient() {
             paginated.map((link) => {
               const status = getStatus(link);
               const shortUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/${link.slug}`;
-              const isDeleting = deleting === link.id;
 
               return (
                 <div
                   key={link.id}
-                  className={`bg-[#19191c] border rounded-lg px-4 py-4 grid md:grid-cols-[1fr_auto_auto_auto] gap-4 items-center hover:border-[rgba(189,157,255,0.15)] transition-all ${
-                    isDeleting ? "opacity-40" : "border-[rgba(72,71,74,0.1)]"
-                  }`}
+                  className="bg-[#19191c] border border-[rgba(72,71,74,0.1)] rounded-lg px-4 py-4 grid md:grid-cols-[1fr_auto_auto_auto] gap-4 items-center hover:border-[rgba(189,157,255,0.15)] transition-colors"
                 >
                   {/* Link info */}
                   <div className="min-w-0">
@@ -227,22 +239,21 @@ export default function LinksClient() {
                       href={link.originalUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-8 h-8 flex items-center justify-center rounded-lg text-[#adaaad] hover:text-[#f9f5f8] hover:bg-[rgba(255,255,255,0.05)] transition-all"
+                      className="w-8 h-8 flex items-center justify-center rounded-lg text-[#adaaad] hover:text-[#f9f5f8] hover:bg-[rgba(255,255,255,0.05)] transition-colors"
                       title="Open original URL"
                     >
                       <ExternalLink size={14} />
                     </a>
                     <button
                       onClick={() => handleCopy(link.slug)}
-                      className="w-8 h-8 flex items-center justify-center rounded-lg text-[#adaaad] hover:text-[#f9f5f8] hover:bg-[rgba(255,255,255,0.05)] transition-all"
+                      className="w-8 h-8 flex items-center justify-center rounded-lg text-[#adaaad] hover:text-[#f9f5f8] hover:bg-[rgba(255,255,255,0.05)] transition-colors"
                       title="Copy short URL"
                     >
                       {copied === link.slug ? <Check size={14} className="text-[#bd9dff]" /> : <Copy size={14} />}
                     </button>
                     <button
                       onClick={() => handleDelete(link.id)}
-                      disabled={isDeleting}
-                      className="w-8 h-8 flex items-center justify-center rounded-lg text-[#adaaad] hover:text-[#ff6060] hover:bg-[rgba(255,96,96,0.08)] transition-all disabled:opacity-30"
+                      className="w-8 h-8 flex items-center justify-center rounded-lg text-[#adaaad] hover:text-[#ff6060] hover:bg-[rgba(255,96,96,0.08)] transition-colors"
                       title="Delete link"
                     >
                       <Trash2 size={14} />
@@ -293,7 +304,10 @@ export default function LinksClient() {
       </div>
 
       {showModal && (
-        <CreateLinkModal onClose={() => { setShowModal(false); fetchLinks(); }} />
+        <CreateLinkModal
+          onClose={() => setShowModal(false)}
+          onCreated={handleCreated}
+        />
       )}
     </>
   );
