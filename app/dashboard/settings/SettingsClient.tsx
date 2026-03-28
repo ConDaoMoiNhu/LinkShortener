@@ -44,9 +44,9 @@ export default function SettingsClient({ user }: { user: User }) {
   };
 
   return (
-    <div className="p-8 max-w-[1100px]">
+    <div className="p-4 md:p-8 max-w-[1100px]">
       <div className="mb-8">
-        <h1 className="text-[#f9f5f8] font-black text-5xl tracking-[-2.4px] leading-tight">
+        <h1 className="text-[#f9f5f8] font-black text-4xl md:text-5xl tracking-[-2.4px] leading-tight">
           Workspace Settings
         </h1>
         <p className="text-[#adaaad] text-base mt-2">
@@ -54,9 +54,9 @@ export default function SettingsClient({ user }: { user: User }) {
         </p>
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Left column */}
-        <div className="col-span-2 flex flex-col gap-6">
+        <div className="col-span-1 md:col-span-2 flex flex-col gap-6">
           {/* Account Profile */}
           <div className="bg-[#19191c] border border-[rgba(72,71,74,0.1)] rounded-lg p-8">
             <div className="flex items-center justify-between mb-6">

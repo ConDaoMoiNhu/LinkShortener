@@ -89,11 +89,11 @@ export default function LinksClient() {
 
   return (
     <>
-      <div className="p-8 max-w-[1100px]">
+      <div className="p-4 md:p-8 max-w-[1100px]">
         {/* Header */}
-        <div className="flex items-end justify-between mb-8">
+        <div className="flex flex-wrap items-start md:items-end justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-[#f9f5f8] font-black text-5xl tracking-[-2.4px] leading-tight">
+            <h1 className="text-[#f9f5f8] font-black text-4xl md:text-5xl tracking-[-2.4px] leading-tight">
               All Links
             </h1>
             <p className="text-[#adaaad] text-base mt-1">
@@ -102,7 +102,7 @@ export default function LinksClient() {
           </div>
           <button
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 px-8 py-3.5 rounded-lg font-bold text-base text-black shadow-[0_20px_40px_0_rgba(189,157,255,0.2)] transition-opacity hover:opacity-90"
+            className="flex items-center gap-2 px-6 md:px-8 py-3 md:py-3.5 rounded-lg font-bold text-sm md:text-base text-black shadow-[0_20px_40px_0_rgba(189,157,255,0.2)] transition-opacity hover:opacity-90 shrink-0"
             style={{ backgroundImage: "linear-gradient(133deg, rgb(189,157,255) 0%, rgb(138,76,252) 100%)" }}
           >
             <span className="text-lg leading-none">+</span>

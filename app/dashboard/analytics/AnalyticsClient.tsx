@@ -113,7 +113,7 @@ export default function AnalyticsClient() {
   const totalLinksClicks = links.reduce((s, l) => s + (l._count?.clicks ?? 0), 0);
 
   return (
-    <div className="p-8 max-w-[1100px]">
+    <div className="p-4 md:p-8 max-w-[1100px]">
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-2 text-xs font-bold tracking-wider uppercase mb-3">
@@ -123,7 +123,7 @@ export default function AnalyticsClient() {
         </div>
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-[#f9f5f8] font-black text-5xl tracking-[-2.4px]">
+            <h1 className="text-[#f9f5f8] font-black text-4xl md:text-5xl tracking-[-2.4px]">
               {selected ? `/${selected.slug}` : "Analytics"}
             </h1>
             {selected && (
@@ -200,7 +200,7 @@ export default function AnalyticsClient() {
       )}
 
       {/* Bottom row */}
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
         {/* Top Links */}
         <div className="bg-[#19191c] border border-[rgba(72,71,74,0.1)] rounded-lg p-6">
           <h3 className="text-[#f9f5f8] font-bold text-base mb-5">All Links</h3>

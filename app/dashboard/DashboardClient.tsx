@@ -92,16 +92,16 @@ export default function DashboardClient({ user }: { user: User }) {
 
   return (
     <>
-      <div className="p-8 max-w-[1100px]">
+      <div className="p-4 md:p-8 max-w-[1100px]">
         {/* Header */}
-        <div className="flex items-end justify-between mb-8">
+        <div className="flex flex-wrap items-start md:items-end justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-[#f9f5f8] font-black text-5xl tracking-[-2.4px] leading-tight">Overview</h1>
+            <h1 className="text-[#f9f5f8] font-black text-4xl md:text-5xl tracking-[-2.4px] leading-tight">Overview</h1>
             <p className="text-[#adaaad] text-base mt-1">Manage your links and monitor reach.</p>
           </div>
           <button
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 px-8 py-3.5 rounded-lg font-bold text-base text-black shadow-[0_20px_40px_0_rgba(189,157,255,0.2)] transition-opacity hover:opacity-90"
+            className="flex items-center gap-2 px-6 md:px-8 py-3 md:py-3.5 rounded-lg font-bold text-sm md:text-base text-black shadow-[0_20px_40px_0_rgba(189,157,255,0.2)] transition-opacity hover:opacity-90 shrink-0"
             style={{ backgroundImage: "linear-gradient(133deg, rgb(189,157,255) 0%, rgb(138,76,252) 100%)" }}
           >
             <span className="text-lg leading-none">+</span>
@@ -110,8 +110,8 @@ export default function DashboardClient({ user }: { user: User }) {
         </div>
 
         {/* Stats Bento */}
-        <div className="grid grid-cols-3 gap-6 mb-8">
-          <div className="col-span-2 bg-[#131315] rounded-lg border border-[rgba(72,71,74,0.05)] p-8 relative overflow-hidden">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-8">
+          <div className="col-span-1 md:col-span-2 bg-[#131315] rounded-lg border border-[rgba(72,71,74,0.05)] p-6 md:p-8 relative overflow-hidden">
             <div className="absolute bottom-[-39px] right-[-39px] w-64 h-64 bg-[rgba(189,157,255,0.05)] blur-[32px] rounded-xl pointer-events-none" />
             <p className="text-[rgba(173,170,173,0.8)] text-xs font-bold tracking-[1.2px] uppercase mb-4">Total Engagement</p>
             <div className="text-[#bd9dff] font-black text-7xl tracking-[-3.6px] leading-none mb-4">
@@ -124,7 +124,7 @@ export default function DashboardClient({ user }: { user: User }) {
               <span className="text-[#ff8eac] font-bold text-base">Total clicks across all links</span>
             </div>
           </div>
-          <div className="bg-[#19191c] rounded-lg border border-[rgba(72,71,74,0.05)] p-8">
+          <div className="bg-[#19191c] rounded-lg border border-[rgba(72,71,74,0.05)] p-6 md:p-8">
             <p className="text-[rgba(173,170,173,0.8)] text-xs font-bold tracking-[1.2px] uppercase mb-2">Active Links</p>
             <div className="text-[#f9f5f8] font-black text-4xl tracking-[-1.8px] leading-tight mb-6">
               {loading ? "—" : activeCount}
