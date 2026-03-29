@@ -45,9 +45,9 @@ export async function proxy(request: NextRequest) {
           const data = await res.json();
           const originalUrl: string | null = data?.result ?? null;
           if (originalUrl) {
-            // Track click asynchronously before redirecting
+            // Track click before redirecting (await ensures it completes on Edge)
             const origin = request.nextUrl.origin;
-            fetch(`${origin}/api/analytics/click/${slug}`, {
+            await fetch(`${origin}/api/analytics/click/${slug}`, {
               method: "POST",
               headers: {
                 "user-agent": request.headers.get("user-agent") ?? "",
