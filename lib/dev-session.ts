@@ -1,24 +1,13 @@
-import { decode } from "next-auth/jwt";
-import { cookies } from "next/headers";
+import { getServerSession } from "next-auth";
+import { headers } from "next/headers";
+import { authOptions } from "@/lib/auth";
 
 export async function getSessionOrDev() {
   if (process.env.NODE_ENV === "development") {
     return { user: { id: null as unknown as string, name: "Dev User", email: "dev@localhost" } };
   }
-
-  const cookieStore = await cookies();
-  const isSecure = process.env.NEXTAUTH_URL?.startsWith("https://") ?? false;
-  const cookieName = `${isSecure ? "__Secure-" : ""}next-auth.session-token`;
-  const sessionToken = cookieStore.get(cookieName)?.value;
-
-  if (!sessionToken) return null;
-
-  const token = await decode({
-    token: sessionToken,
-    secret: process.env.NEXTAUTH_SECRET!,
-    salt: cookieName,
-  });
-
-  if (!token) return null;
-  return { user: { id: token.id as string, name: token.name, email: token.email } };
+  // Next.js 15+ workaround: await headers() to warm up async cache
+  // so getServerSession can read cookies synchronously inside
+  await headers();
+  return getServerSession(authOptions);
 }
