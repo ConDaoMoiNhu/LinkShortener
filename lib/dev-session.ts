@@ -16,6 +16,7 @@ export async function getSessionOrDev() {
   const token = await decode({
     token: sessionToken,
     secret: process.env.NEXTAUTH_SECRET!,
+    salt: cookieName,
   });
 
   if (!token) return null;
