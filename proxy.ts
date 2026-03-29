@@ -14,8 +14,8 @@ function isSlugPath(pathname: string): boolean {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Auth protection for dashboard
-  if (pathname.startsWith("/dashboard")) {
+  // Auth protection for dashboard (skip in dev)
+  if (pathname.startsWith("/dashboard") && process.env.NODE_ENV !== "development") {
     const token = await getToken({
       req: request,
       secret: process.env.NEXTAUTH_SECRET,
@@ -45,6 +45,15 @@ export async function proxy(request: NextRequest) {
           const data = await res.json();
           const originalUrl: string | null = data?.result ?? null;
           if (originalUrl) {
+            // Track click asynchronously before redirecting
+            const origin = request.nextUrl.origin;
+            fetch(`${origin}/api/analytics/click/${slug}`, {
+              method: "POST",
+              headers: {
+                "user-agent": request.headers.get("user-agent") ?? "",
+                "x-vercel-ip-country": request.headers.get("x-vercel-ip-country") ?? "",
+              },
+            }).catch(() => {});
             return NextResponse.redirect(originalUrl, { status: 301 });
           }
         }
