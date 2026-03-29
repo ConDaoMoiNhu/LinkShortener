@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip,
   ResponsiveContainer, CartesianGrid,
@@ -17,32 +17,81 @@ interface AnalyticsData {
 const COUNTRY_FLAGS: Record<string, string> = {
   US: "🇺🇸", VN: "🇻🇳", GB: "🇬🇧", DE: "🇩🇪",
   FR: "🇫🇷", JP: "🇯🇵", AU: "🇦🇺", CA: "🇨🇦",
-  SG: "🇸🇬", KR: "🇰🇷",
+  SG: "🇸🇬", KR: "🇰🇷", IN: "🇮🇳", CN: "🇨🇳",
 };
 const COUNTRY_NAMES: Record<string, string> = {
   US: "United States", VN: "Việt Nam", GB: "United Kingdom",
   DE: "Germany", FR: "France", JP: "Japan", AU: "Australia",
   CA: "Canada", SG: "Singapore", KR: "South Korea",
+  IN: "India", CN: "China",
 };
+
+// Count-up animation hook
+function useCountUp(target: number, duration = 900) {
+  const [value, setValue] = useState(0);
+  const rafRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    if (target === 0) { setValue(0); return; }
+    const startTime = performance.now();
+    const startVal = 0;
+    const tick = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setValue(Math.round(startVal + eased * (target - startVal)));
+      if (progress < 1) rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+  }, [target, duration]);
+  return value;
+}
+
+// Animated number component
+function AnimatedNumber({ value, suffix = "" }: { value: number; suffix?: string }) {
+  const animated = useCountUp(value);
+  return <>{animated.toLocaleString()}{suffix}</>;
+}
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload?.length) {
     return (
-      <div className="bg-[#19191c] border border-[rgba(189,157,255,0.2)] px-4 py-3 rounded-xl shadow-xl">
-        <div className="text-[#adaaad] text-[11px] font-bold uppercase tracking-wider mb-1">{label}</div>
-        <div className="text-[#f9f5f8] font-bold text-lg">{payload[0].value.toLocaleString()} Clicks</div>
+      <div
+        className="px-4 py-3 rounded-2xl shadow-2xl"
+        style={{
+          background: "rgba(19,19,21,0.97)",
+          border: "1px solid rgba(189,157,255,0.25)",
+          backdropFilter: "blur(12px)",
+        }}
+      >
+        <div className="text-[#adaaad] text-[10px] font-bold uppercase tracking-widest mb-1">{label}</div>
+        <div className="text-[#f9f5f8] font-black text-2xl tracking-tight">
+          {payload[0].value.toLocaleString()}
+          <span className="text-[#bd9dff] text-sm font-bold ml-1">clicks</span>
+        </div>
       </div>
     );
   }
   return null;
 };
 
+const DEVICE_CONFIG = [
+  { key: "mobile", icon: "📱", label: "Mobile", color: "#bd9dff" },
+  { key: "desktop", icon: "💻", label: "Desktop", color: "#fe81a4" },
+  { key: "tablet", icon: "🖥️", label: "Other", color: "#81d4fe" },
+];
+
 export default function AnalyticsClient() {
   const [links, setLinks] = useState<CachedLink[]>(() => getLinksCache() ?? []);
   const [selected, setSelected] = useState<CachedLink | null>(() => getLinksCache()?.[0] ?? null);
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(() => getLinksCache() === null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [activeDevice, setActiveDevice] = useState(0);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
 
   const fetchLinks = useCallback(async () => {
     const res = await fetch("/api/links");
@@ -59,26 +108,32 @@ export default function AnalyticsClient() {
 
   useEffect(() => {
     if (!selected) return;
+    setAnalyticsLoading(true);
+    setAnalytics(null);
     fetch(`/api/analytics/${selected.slug}`)
       .then(r => r.json())
-      .then(setAnalytics)
-      .catch(() => setAnalytics(null));
+      .then(data => { setAnalytics(data); setAnalyticsLoading(false); })
+      .catch(() => { setAnalytics(null); setAnalyticsLoading(false); });
   }, [selected]);
 
-  const areaData = useMemo(() => analytics
-    ? Object.entries(analytics.byDate)
-        .sort(([a], [b]) => a.localeCompare(b))
-        .slice(-13)
-        .map(([date, clicks]) => ({
-          date: new Date(date).toLocaleDateString("en-US", { day: "2-digit", month: "short" }),
-          clicks,
-        }))
-    : [], [analytics]);
+  // Always generate 13 days, fill missing with 0
+  const areaData = useMemo(() => {
+    const today = new Date();
+    return Array.from({ length: 13 }, (_, i) => {
+      const d = new Date(today);
+      d.setDate(today.getDate() - (12 - i));
+      const key = d.toISOString().split("T")[0];
+      return {
+        date: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+        clicks: analytics?.byDate[key] ?? 0,
+      };
+    });
+  }, [analytics]);
 
   const topCountries = useMemo(() => analytics
     ? Object.entries(analytics.byCountry)
         .sort(([, a], [, b]) => b - a)
-        .slice(0, 3)
+        .slice(0, 5)
         .map(([code, count]) => ({
           code, count,
           name: COUNTRY_NAMES[code] ?? code,
@@ -88,186 +143,314 @@ export default function AnalyticsClient() {
 
   const deviceData = useMemo(() => {
     const total = analytics ? Object.values(analytics.byDevice).reduce((a, b) => a + b, 0) || 1 : 1;
-    return analytics
-      ? [
-          { icon: "📱", label: "Mobile", pct: Math.round(((analytics.byDevice.mobile ?? 0) / total) * 100) },
-          { icon: "💻", label: "Desktop", pct: Math.round(((analytics.byDevice.desktop ?? 0) / total) * 100) },
-          { icon: "🖥️", label: "Other", pct: Math.round(((analytics.byDevice.other ?? 0) / total) * 100) },
-        ]
-      : [
-          { icon: "📱", label: "Mobile", pct: 0 },
-          { icon: "💻", label: "Desktop", pct: 0 },
-          { icon: "🖥️", label: "Other", pct: 0 },
-        ];
+    return DEVICE_CONFIG.map(cfg => ({
+      ...cfg,
+      count: analytics?.byDevice[cfg.key] ?? 0,
+      pct: analytics ? Math.round(((analytics.byDevice[cfg.key] ?? 0) / total) * 100) : 0,
+    }));
   }, [analytics]);
 
   const totalLinksClicks = useMemo(() => links.reduce((s, l) => s + (l._count?.clicks ?? 0), 0), [links]);
+  const maxClicks = useMemo(() => links.length > 0 ? Math.max(...links.map(l => l._count?.clicks ?? 0), 1) : 1, [links]);
+
+  const statsData = [
+    { label: "Total Clicks", value: analytics?.totalClicks ?? 0, accent: "#bd9dff" },
+    { label: "All Links", value: links.length, accent: "#fe81a4" },
+    { label: "Total Engagement", value: totalLinksClicks, accent: "#81d4fe" },
+    { label: "Top Country", value: topCountries[0]?.flag ?? "—", isText: true, sub: topCountries[0]?.name, accent: "#a8e6cf" },
+  ];
 
   return (
     <div className="p-4 md:p-8 max-w-[1100px]">
       {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center gap-2 text-xs font-bold tracking-wider uppercase mb-3">
-          <span className="text-[#adaaad]">Dashboard</span>
-          <span className="text-[rgba(173,170,173,0.4)]">›</span>
+      <div className="mb-8">
+        <div className="flex items-center gap-2 text-[10px] font-bold tracking-widest uppercase mb-4">
+          <span className="text-[rgba(173,170,173,0.5)]">Dashboard</span>
+          <span className="text-[rgba(173,170,173,0.3)]">›</span>
           <span className="text-[#bd9dff]">Analytics</span>
         </div>
-        <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-end justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-[#f9f5f8] font-black text-4xl md:text-5xl tracking-[-2.4px]">
-              {selected ? `/${selected.slug}` : "Analytics"}
+            <h1 className="text-[#f9f5f8] font-black text-4xl md:text-5xl tracking-[-2.4px] leading-tight">
+              {loading ? "Analytics" : selected ? `/${selected.slug}` : "Analytics"}
             </h1>
-            {selected && (
-              <p className="text-[#adaaad] text-sm mt-1 truncate max-w-lg">→ {selected.originalUrl}</p>
+            {selected && !loading && (
+              <p className="text-[#adaaad] text-sm mt-1.5 truncate max-w-md">
+                → {selected.originalUrl}
+              </p>
             )}
           </div>
-          <div className="flex gap-3 items-center">
-            {links.length > 1 && (
-              <select
-                value={selected?.id ?? ""}
-                onChange={e => setSelected(links.find(l => l.id === e.target.value) ?? null)}
-                className="bg-[#19191c] border border-[rgba(72,71,74,0.2)] rounded-lg px-4 py-2.5 text-[#f9f5f8] text-sm font-bold outline-none"
-              >
-                {links.map(l => (
-                  <option key={l.id} value={l.id}>/{l.slug} ({l._count?.clicks ?? 0} clicks)</option>
-                ))}
-              </select>
-            )}
-          </div>
+          {links.length > 1 && (
+            <select
+              value={selected?.id ?? ""}
+              onChange={e => setSelected(links.find(l => l.id === e.target.value) ?? null)}
+              className="bg-[#19191c] border border-[rgba(72,71,74,0.2)] rounded-xl px-4 py-2.5 text-[#f9f5f8] text-sm font-bold outline-none cursor-pointer"
+              style={{ backgroundImage: "none" }}
+            >
+              {links.map(l => (
+                <option key={l.id} value={l.id}>
+                  /{l.slug} ({l._count?.clicks ?? 0} clicks)
+                </option>
+              ))}
+            </select>
+          )}
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        {[
-          { label: "Total Clicks", value: analytics ? analytics.totalClicks.toLocaleString() : "—" },
-          { label: "All Links", value: links.length.toString() },
-          { label: "Total Engagement", value: totalLinksClicks.toLocaleString() },
-          { label: "Top Country", value: topCountries[0] ? `${topCountries[0].flag} ${topCountries[0].code}` : "—" },
-        ].map((stat, i) => (
-          <div key={i} className="bg-[#19191c] border border-[rgba(72,71,74,0.1)] rounded-lg p-6">
-            <p className="text-[#adaaad] text-[11px] font-bold tracking-[1.2px] uppercase mb-3">{stat.label}</p>
-            <div className="text-[#f9f5f8] font-black text-4xl tracking-[-1.8px]">{stat.value}</div>
+      {/* Stat cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        {statsData.map((stat, i) => (
+          <div
+            key={i}
+            className="bg-[#19191c] border border-[rgba(72,71,74,0.1)] rounded-2xl p-5 relative overflow-hidden group"
+            style={{
+              transition: "border-color 0.2s",
+            }}
+            onMouseEnter={e => (e.currentTarget.style.borderColor = `${stat.accent}30`)}
+            onMouseLeave={e => (e.currentTarget.style.borderColor = "rgba(72,71,74,0.1)")}
+          >
+            <div
+              className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+              style={{ background: `radial-gradient(circle at 80% 20%, ${stat.accent}08 0%, transparent 70%)` }}
+            />
+            <p className="text-[#adaaad] text-[10px] font-bold tracking-[1.4px] uppercase mb-3">{stat.label}</p>
+            {stat.isText ? (
+              <div>
+                <div className="text-[#f9f5f8] font-black text-3xl">{stat.value}</div>
+                {stat.sub && <div className="text-[#adaaad] text-xs mt-1 truncate">{stat.sub}</div>}
+              </div>
+            ) : (
+              <div
+                className="font-black text-3xl md:text-4xl tracking-tight"
+                style={{ color: stat.accent }}
+              >
+                {loading || analyticsLoading ? (
+                  <span className="text-[rgba(173,170,173,0.3)]">—</span>
+                ) : mounted ? (
+                  <AnimatedNumber value={stat.value as number} />
+                ) : (
+                  (stat.value as number).toLocaleString()
+                )}
+              </div>
+            )}
           </div>
         ))}
       </div>
 
-      {/* Area chart */}
-      {analytics && (
-        <div className="bg-[#19191c] border border-[rgba(72,71,74,0.1)] rounded-lg p-6 mb-6">
-          <div className="flex items-center justify-between mb-1">
-            <h3 className="text-[#f9f5f8] font-bold text-xl">Clicks Over Time</h3>
-            <div className="flex items-center gap-2">
-              <div className="w-2.5 h-2.5 rounded-full bg-[#bd9dff]" />
-              <span className="text-[#adaaad] text-xs font-bold uppercase tracking-wider">Organic Clicks</span>
-            </div>
+      {/* Area Chart */}
+      <div className="bg-[#19191c] border border-[rgba(72,71,74,0.1)] rounded-2xl p-6 mb-6">
+        <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
+          <h3 className="text-[#f9f5f8] font-bold text-lg">Clicks Over Time</h3>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-[#bd9dff] animate-pulse" />
+            <span className="text-[#adaaad] text-[10px] font-bold uppercase tracking-widest">Organic Traffic</span>
           </div>
-          <p className="text-[#adaaad] text-sm mb-6">Last 13 days</p>
-          <div className="h-56">
+        </div>
+        <p className="text-[rgba(173,170,173,0.5)] text-xs mb-6">Last 13 days</p>
+
+        {analyticsLoading ? (
+          <div className="h-52 flex items-center justify-center">
+            <div className="w-8 h-8 border-2 border-[#bd9dff] border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : (
+          <div className="h-52">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={areaData}>
+              <AreaChart data={areaData} margin={{ top: 8, right: 4, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="clickGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#bd9dff" stopOpacity={0.3} />
+                    <stop offset="0%" stopColor="#bd9dff" stopOpacity={0.35} />
+                    <stop offset="75%" stopColor="#bd9dff" stopOpacity={0.04} />
                     <stop offset="100%" stopColor="#bd9dff" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(72,71,74,0.1)" vertical={false} />
-                <XAxis dataKey="date" tickLine={false} axisLine={false} tick={{ fill: "#adaaad", fontSize: 11 }} />
-                <YAxis hide />
-                <Tooltip content={<CustomTooltip />} />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(72,71,74,0.08)" vertical={false} />
+                <XAxis
+                  dataKey="date"
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fill: "rgba(173,170,173,0.5)", fontSize: 10, fontWeight: 600 }}
+                  interval={2}
+                />
+                <YAxis
+                  hide={false}
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fill: "rgba(173,170,173,0.4)", fontSize: 10 }}
+                  width={28}
+                  allowDecimals={false}
+                />
+                <Tooltip content={<CustomTooltip />} cursor={{ stroke: "rgba(189,157,255,0.2)", strokeWidth: 1, strokeDasharray: "4 4" }} />
                 <Area
                   type="monotone"
                   dataKey="clicks"
                   stroke="#bd9dff"
-                  strokeWidth={2}
+                  strokeWidth={2.5}
                   fill="url(#clickGradient)"
-                  dot={false}
+                  dot={(props: any) => {
+                    const { cx, cy, payload } = props;
+                    if (payload.clicks === 0) return <g key={cx} />;
+                    return (
+                      <circle
+                        key={cx}
+                        cx={cx}
+                        cy={cy}
+                        r={4}
+                        fill="#bd9dff"
+                        stroke="rgba(19,19,21,0.8)"
+                        strokeWidth={2}
+                      />
+                    );
+                  }}
+                  activeDot={{ r: 6, fill: "#bd9dff", stroke: "rgba(189,157,255,0.3)", strokeWidth: 6 }}
+                  isAnimationActive={true}
+                  animationDuration={1200}
+                  animationEasing="ease-out"
                 />
               </AreaChart>
             </ResponsiveContainer>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Bottom row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-        {/* Top Links */}
-        <div className="bg-[#19191c] border border-[rgba(72,71,74,0.1)] rounded-lg p-6">
-          <h3 className="text-[#f9f5f8] font-bold text-base mb-5">All Links</h3>
-          <div className="flex flex-col gap-4">
-            {links.slice(0, 5).map(l => {
-              const pct = totalLinksClicks > 0 ? Math.round((l._count?.clicks ?? 0) / totalLinksClicks * 100) : 0;
-              return (
-                <div key={l.id}>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[#adaaad] text-sm truncate max-w-[120px]">/{l.slug}</span>
-                    <span className="text-[#adaaad] text-sm font-bold">{pct}%</span>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+        {/* All Links breakdown */}
+        <div className="bg-[#19191c] border border-[rgba(72,71,74,0.1)] rounded-2xl p-6">
+          <h3 className="text-[#f9f5f8] font-bold text-base mb-5">Link Performance</h3>
+          {links.length === 0 ? (
+            <p className="text-[rgba(173,170,173,0.4)] text-sm">No links yet.</p>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {links.slice(0, 5).map((l, i) => {
+                const clicks = l._count?.clicks ?? 0;
+                const pct = Math.round((clicks / maxClicks) * 100);
+                const colors = ["#bd9dff", "#fe81a4", "#81d4fe", "#a8e6cf", "#ffd180"];
+                return (
+                  <div key={l.id}>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[#f9f5f8] text-sm font-bold truncate max-w-[140px]">/{l.slug}</span>
+                      <span className="text-[#adaaad] text-xs font-bold shrink-0 ml-2">{clicks.toLocaleString()} clicks</span>
+                    </div>
+                    <div className="bg-[rgba(44,44,47,0.6)] h-1.5 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${pct}%`,
+                          background: colors[i % colors.length],
+                          transition: "width 0.8s cubic-bezier(0.4, 0, 0.2, 1)",
+                          boxShadow: `0 0 8px ${colors[i % colors.length]}60`,
+                        }}
+                      />
+                    </div>
                   </div>
-                  <div className="bg-[#2c2c2f] h-1 rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full"
-                      style={{ width: `${pct}%`, background: "linear-gradient(90deg, #bd9dff, #8a4cfc)" }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Traffic by Region */}
-        <div className="bg-[#19191c] border border-[rgba(72,71,74,0.1)] rounded-lg p-6">
-          <h3 className="text-[#f9f5f8] font-bold text-base mb-4">Traffic by Region</h3>
-          <div className="relative rounded-lg overflow-hidden mb-4 h-28 bg-[#0e0e10]">
-            <img
-              src="/59c491d915420b50f25192c7f9ba93ecb1fd2747.png"
-              alt="World Map"
-              className="w-full h-full object-cover opacity-60"
-              loading="lazy"
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            {topCountries.length === 0 ? (
-              <p className="text-[#adaaad] text-sm">No data yet</p>
-            ) : topCountries.map((c, i) => (
-              <div key={i} className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span>{c.flag}</span>
-                  <span className="text-[#adaaad] text-sm">{c.name}</span>
-                </div>
-                <span className="text-[#adaaad] text-sm font-bold">{c.count.toLocaleString()}</span>
-              </div>
-            ))}
-          </div>
+        <div className="bg-[#19191c] border border-[rgba(72,71,74,0.1)] rounded-2xl p-6">
+          <h3 className="text-[#f9f5f8] font-bold text-base mb-5">Traffic by Region</h3>
+          {topCountries.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-32 gap-3">
+              <div className="text-3xl opacity-30">🌍</div>
+              <p className="text-[rgba(173,170,173,0.4)] text-sm text-center">
+                No geographic data yet.<br />Share your link to see traffic.
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {topCountries.map((c, i) => {
+                const maxCount = topCountries[0].count;
+                const pct = Math.round((c.count / maxCount) * 100);
+                return (
+                  <div key={i}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">{c.flag}</span>
+                        <span className="text-[#adaaad] text-sm">{c.name}</span>
+                      </div>
+                      <span className="text-[#f9f5f8] text-sm font-bold">{c.count.toLocaleString()}</span>
+                    </div>
+                    <div className="bg-[rgba(44,44,47,0.6)] h-1 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-[#bd9dff]"
+                        style={{
+                          width: `${pct}%`,
+                          transition: "width 1s cubic-bezier(0.4, 0, 0.2, 1)",
+                          transitionDelay: `${i * 80}ms`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Device Distribution */}
-        <div className="bg-[#19191c] border border-[rgba(72,71,74,0.1)] rounded-lg p-6">
-          <h3 className="text-[#f9f5f8] font-bold text-base mb-5">Device Distribution</h3>
-          <div className="flex items-center justify-center mb-5">
-            <div
-              className="w-28 h-28 rounded-2xl border-2 border-[#bd9dff] flex flex-col items-center justify-center cursor-pointer"
-              style={{ backgroundColor: "rgba(189,157,255,0.05)" }}
-            >
-              <span className="text-3xl">{deviceData[activeDevice].icon}</span>
-              <div className="text-[#f9f5f8] font-bold text-2xl mt-1">{deviceData[activeDevice].pct}%</div>
-              <div className="text-[#adaaad] text-[10px] font-bold uppercase tracking-wider">{deviceData[activeDevice].label}</div>
-            </div>
-          </div>
-          <div className="flex justify-center gap-4">
+        <div className="bg-[#19191c] border border-[rgba(72,71,74,0.1)] rounded-2xl p-6">
+          <h3 className="text-[#f9f5f8] font-bold text-base mb-5">Device Split</h3>
+          <div className="flex flex-col gap-4">
             {deviceData.map((d, i) => (
               <button
                 key={i}
                 onClick={() => setActiveDevice(i)}
-                className={`flex flex-col items-center gap-1 transition-opacity ${activeDevice === i ? "opacity-100" : "opacity-40"}`}
+                className="w-full text-left group"
               >
-                <span className="text-xl">{d.icon}</span>
-                <span className="text-[#adaaad] text-xs font-bold">{d.pct}%</span>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">{d.icon}</span>
+                    <span
+                      className="text-sm font-bold transition-colors"
+                      style={{ color: activeDevice === i ? d.color : "#adaaad" }}
+                    >
+                      {d.label}
+                    </span>
+                  </div>
+                  <span
+                    className="text-sm font-black transition-colors"
+                    style={{ color: activeDevice === i ? d.color : "rgba(173,170,173,0.6)" }}
+                  >
+                    {d.pct}%
+                  </span>
+                </div>
+                <div className="bg-[rgba(44,44,47,0.6)] h-2 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-700"
+                    style={{
+                      width: `${d.pct}%`,
+                      background: d.color,
+                      opacity: activeDevice === i ? 1 : 0.35,
+                      boxShadow: activeDevice === i ? `0 0 12px ${d.color}50` : "none",
+                    }}
+                  />
+                </div>
               </button>
             ))}
+
+            {/* Big number highlight */}
+            <div
+              className="mt-2 rounded-xl p-4 text-center"
+              style={{ background: `${deviceData[activeDevice].color}10`, border: `1px solid ${deviceData[activeDevice].color}20` }}
+            >
+              <div className="text-4xl mb-1">{deviceData[activeDevice].icon}</div>
+              <div
+                className="font-black text-3xl tracking-tight"
+                style={{ color: deviceData[activeDevice].color }}
+              >
+                {mounted ? <AnimatedNumber value={deviceData[activeDevice].pct} suffix="%" /> : `${deviceData[activeDevice].pct}%`}
+              </div>
+              <div className="text-[#adaaad] text-xs font-bold uppercase tracking-widest mt-1">
+                {deviceData[activeDevice].label}
+              </div>
+            </div>
           </div>
         </div>
+
       </div>
     </div>
   );
