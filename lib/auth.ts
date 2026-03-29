@@ -27,6 +27,16 @@ export const authOptions: NextAuthOptions = {
     signIn: "/login",
   },
   cookies: {
+    sessionToken: {
+      name: `${cookiePrefix}next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: useSecureCookies,
+        maxAge: 30 * 24 * 60 * 60, // 30 days — persist across browser restarts
+      },
+    },
     state: {
       name: `${cookiePrefix}next-auth.state`,
       options: {
