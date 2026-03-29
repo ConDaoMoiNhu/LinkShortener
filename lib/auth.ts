@@ -1,7 +1,9 @@
 import { NextAuthOptions } from "next-auth";
+import { getToken } from "next-auth/jwt";
 import GoogleProvider from "next-auth/providers/google";
 import GitHubProvider from "next-auth/providers/github";
 import { PrismaAdapter } from "@auth/prisma-adapter";
+import { cookies } from "next/headers";
 import { db } from "./db";
 
 const useSecureCookies = process.env.NEXTAUTH_URL?.startsWith("https://") ?? false;
@@ -68,7 +70,12 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     jwt({ token, user }) {
-      if (user) token.id = user.id;
+      if (user) {
+        token.id = user.id;
+        token.name = user.name;
+        token.email = user.email;
+        token.picture = (user as any).image ?? null;
+      }
       return token;
     },
     session({ session, token }) {
@@ -79,3 +86,33 @@ export const authOptions: NextAuthOptions = {
     },
   },
 };
+
+/**
+ * Next.js 16 compatible auth check for server components.
+ * Uses getToken() directly instead of getServerSession() which
+ * breaks in Next.js 15+ due to async headers() API change.
+ */
+export async function getAuthUser() {
+  if (process.env.NODE_ENV === "development") {
+    return { id: null as any, name: "Dev User", email: "dev@localhost", image: null };
+  }
+
+  const cookieStore = await cookies();
+  const allCookies = cookieStore.getAll();
+  const cookieHeader = allCookies.map(c => `${c.name}=${c.value}`).join("; ");
+  const cookieObj = Object.fromEntries(allCookies.map(c => [c.name, c.value]));
+
+  const token = await getToken({
+    req: { headers: { cookie: cookieHeader }, cookies: cookieObj } as any,
+    secret: process.env.NEXTAUTH_SECRET,
+  });
+
+  if (!token) return null;
+
+  return {
+    id: token.id as string,
+    name: token.name as string | null,
+    email: token.email as string | null,
+    image: (token.picture as string | null) ?? null,
+  };
+}
