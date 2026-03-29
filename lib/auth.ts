@@ -1,5 +1,5 @@
 import { NextAuthOptions } from "next-auth";
-import { getToken } from "next-auth/jwt";
+import { decode } from "next-auth/jwt";
 import GoogleProvider from "next-auth/providers/google";
 import GitHubProvider from "next-auth/providers/github";
 import { PrismaAdapter } from "@auth/prisma-adapter";
@@ -98,13 +98,15 @@ export async function getAuthUser() {
   }
 
   const cookieStore = await cookies();
-  const allCookies = cookieStore.getAll();
-  const cookieHeader = allCookies.map(c => `${c.name}=${c.value}`).join("; ");
-  const cookieObj = Object.fromEntries(allCookies.map(c => [c.name, c.value]));
+  const isSecure = process.env.NEXTAUTH_URL?.startsWith("https://") ?? false;
+  const cookieName = `${isSecure ? "__Secure-" : ""}next-auth.session-token`;
+  const sessionToken = cookieStore.get(cookieName)?.value;
 
-  const token = await getToken({
-    req: { headers: { cookie: cookieHeader }, cookies: cookieObj } as any,
-    secret: process.env.NEXTAUTH_SECRET,
+  if (!sessionToken) return null;
+
+  const token = await decode({
+    token: sessionToken,
+    secret: process.env.NEXTAUTH_SECRET!,
   });
 
   if (!token) return null;
