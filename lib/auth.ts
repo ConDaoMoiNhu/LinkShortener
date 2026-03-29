@@ -20,7 +20,8 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   session: {
-    strategy: "database",
+    strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   pages: {
     signIn: "/login",
@@ -56,9 +57,13 @@ export const authOptions: NextAuthOptions = {
     },
   },
   callbacks: {
-    session({ session, user }) {
+    jwt({ token, user }) {
+      if (user) token.id = user.id;
+      return token;
+    },
+    session({ session, token }) {
       if (session.user) {
-        session.user.id = user.id;
+        session.user.id = token.id as string;
       }
       return session;
     },
