@@ -15,7 +15,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const session = await getSessionOrDev();
+  const session = await getSessionOrDev(request);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const link = await db.link.findUnique({ where: { id } });
@@ -53,11 +53,11 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const session = await getSessionOrDev();
+  const session = await getSessionOrDev(request);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const link = await db.link.findUnique({ where: { id } });

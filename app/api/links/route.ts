@@ -11,8 +11,8 @@ const CreateLinkSchema = z.object({
   expiresAt: z.string().optional(),
 });
 
-export async function GET() {
-  const session = await getSessionOrDev();
+export async function GET(request: NextRequest) {
+  const session = await getSessionOrDev(request);
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -29,7 +29,7 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const session = await getSessionOrDev();
+  const session = await getSessionOrDev(request);
   const body = await request.json();
 
   const parsed = CreateLinkSchema.safeParse(body);
@@ -59,8 +59,8 @@ export async function POST(request: NextRequest) {
   return NextResponse.json(link, { status: 201 });
 }
 
-export async function DELETE() {
-  const session = await getSessionOrDev();
+export async function DELETE(request: NextRequest) {
+  const session = await getSessionOrDev(request);
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

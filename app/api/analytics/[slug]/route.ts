@@ -3,11 +3,11 @@ import { getSessionOrDev } from "@/lib/dev-session";
 import { db } from "@/lib/db";
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
   const { slug } = await params;
-  const session = await getSessionOrDev();
+  const session = await getSessionOrDev(request);
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
