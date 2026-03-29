@@ -55,6 +55,20 @@
 
 html { color-scheme: dark; }
 
+/* Pointer cursor on all interactive elements globally */
+button,
+a,
+[role="button"],
+select,
+label[for],
+input[type="checkbox"],
+input[type="radio"],
+input[type="file"],
+input[type="range"],
+summary {
+  cursor: pointer;
+}
+
 body {
   background: var(--bg);
   color: var(--text);
