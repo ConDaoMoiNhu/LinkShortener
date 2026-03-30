@@ -75,6 +75,7 @@ model Click {
   link      Link     @relation(fields: [linkId], references: [id], onDelete: Cascade)
   country   String?
   device    String?
+  referer   String?
   createdAt DateTime @default(now())
 
   @@index([linkId])

@@ -16,13 +16,19 @@ export async function POST(
   if (!link) return new NextResponse(null, { status: 404 });
 
   const userAgent = request.headers.get("user-agent") ?? "";
-
-  // Lấy country từ Vercel geo header (tự động có trên Vercel)
   const country = request.headers.get("x-vercel-ip-country") ?? null;
   const device = detectDevice(userAgent);
 
+  // Parse referer to domain only (privacy-safe, no paths)
+  const rawReferer = request.headers.get("referer") ?? null;
+  let referer: string | null = null;
+  if (rawReferer) {
+    try { referer = new URL(rawReferer).hostname.replace(/^www\./, ""); }
+    catch { referer = null; }
+  }
+
   await db.click.create({
-    data: { linkId: link.id, country, device },
+    data: { linkId: link.id, country, device, referer },
   });
 
   return new NextResponse(null, { status: 200 });

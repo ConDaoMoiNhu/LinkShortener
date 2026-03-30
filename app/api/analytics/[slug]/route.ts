@@ -18,7 +18,7 @@ export async function GET(
       _count: { select: { clicks: true } },
       clicks: {
         orderBy: { createdAt: "desc" },
-        select: { country: true, device: true, createdAt: true },
+        select: { country: true, device: true, referer: true, createdAt: true },
       },
     },
   });
@@ -52,5 +52,19 @@ export async function GET(
     return acc;
   }, {});
 
-  return NextResponse.json({ totalClicks, byDevice, byCountry, byDate });
+  const byReferer = link.clicks.reduce<Record<string, number>>((acc, c) => {
+    const src = c.referer ?? "direct";
+    acc[src] = (acc[src] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  // Growth: compare last 7 days vs previous 7 days
+  const now = new Date();
+  const d7 = new Date(now); d7.setDate(now.getDate() - 7);
+  const d14 = new Date(now); d14.setDate(now.getDate() - 14);
+  const last7 = link.clicks.filter(c => c.createdAt >= d7).length;
+  const prev7 = link.clicks.filter(c => c.createdAt >= d14 && c.createdAt < d7).length;
+  const weekGrowth = prev7 === 0 ? null : Math.round(((last7 - prev7) / prev7) * 100);
+
+  return NextResponse.json({ totalClicks, byDevice, byCountry, byDate, byReferer, weekGrowth });
 }

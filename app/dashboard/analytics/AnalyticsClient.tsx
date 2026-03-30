@@ -12,7 +12,19 @@ interface AnalyticsData {
   byDevice: Record<string, number>;
   byCountry: Record<string, number>;
   byDate: Record<string, number>;
+  byReferer: Record<string, number>;
+  weekGrowth: number | null;
 }
+
+const REFERER_ICONS: Record<string, string> = {
+  "instagram.com": "📸", "t.co": "🐦", "twitter.com": "🐦", "x.com": "🐦",
+  "facebook.com": "👤", "fb.com": "👤", "youtube.com": "▶️", "tiktok.com": "🎵",
+  "linkedin.com": "💼", "reddit.com": "🔸", "github.com": "⚙️",
+  "direct": "🔗",
+};
+const REFERER_COLORS = ["#bd9dff", "#fe81a4", "#81d4fe", "#a8e6cf", "#ffd93d"];
+
+type TimeRange = "30D" | "7D" | "24H";
 
 const COUNTRY_FLAGS: Record<string, string> = {
   US: "🇺🇸", VN: "🇻🇳", GB: "🇬🇧", DE: "🇩🇪",
@@ -89,6 +101,7 @@ export default function AnalyticsClient() {
   const [loading, setLoading] = useState(() => getLinksCache() === null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [timeRange, setTimeRange] = useState<TimeRange>("30D");
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown when clicking outside
@@ -129,18 +142,44 @@ export default function AnalyticsClient() {
       .catch(() => { setAnalytics(null); setAnalyticsLoading(false); });
   }, [selected]);
 
-  // Always generate 13 days, fill missing with 0
+  // Generate chart data based on selected time range
   const areaData = useMemo(() => {
     const today = new Date();
-    return Array.from({ length: 13 }, (_, i) => {
+    if (timeRange === "24H") {
+      return Array.from({ length: 24 }, (_, i) => {
+        const h = new Date(today);
+        h.setHours(today.getHours() - (23 - i), 0, 0, 0);
+        const key = h.toISOString().split("T")[0];
+        // approximate: divide day's clicks by 24
+        const dayClicks = analytics?.byDate[key] ?? 0;
+        return { date: `${h.getHours()}h`, clicks: i === 23 ? dayClicks : 0 };
+      });
+    }
+    const days = timeRange === "7D" ? 7 : 30;
+    return Array.from({ length: days }, (_, i) => {
       const d = new Date(today);
-      d.setDate(today.getDate() - (12 - i));
+      d.setDate(today.getDate() - (days - 1 - i));
       const key = d.toISOString().split("T")[0];
       return {
         date: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
         clicks: analytics?.byDate[key] ?? 0,
       };
     });
+  }, [analytics, timeRange]);
+
+  const topReferrers = useMemo(() => {
+    if (!analytics?.byReferer) return [];
+    const total = Object.values(analytics.byReferer).reduce((a, b) => a + b, 0) || 1;
+    return Object.entries(analytics.byReferer)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 5)
+      .map(([src, count], i) => ({
+        src, count,
+        pct: Math.round((count / total) * 100),
+        icon: REFERER_ICONS[src] ?? "🌐",
+        color: REFERER_COLORS[i % REFERER_COLORS.length],
+        label: src === "direct" ? "Direct / Other" : src,
+      }));
   }, [analytics]);
 
   const topCountries = useMemo(() => analytics
@@ -167,10 +206,14 @@ export default function AnalyticsClient() {
   const maxClicks = useMemo(() => links.length > 0 ? Math.max(...links.map(l => l._count?.clicks ?? 0), 1) : 1, [links]);
 
   const statsData = [
-    { label: "Total Clicks", value: analytics?.totalClicks ?? 0, accent: "#bd9dff" },
+    {
+      label: "Total Clicks", value: analytics?.totalClicks ?? 0, accent: "#bd9dff",
+      growth: analytics?.weekGrowth,
+      growthLabel: "this week",
+    },
     { label: "All Links", value: links.length, accent: "#fe81a4" },
     { label: "Total Engagement", value: totalLinksClicks, accent: "#81d4fe" },
-    { label: "Top Country", value: topCountries[0]?.flag ?? "—", isText: true, sub: topCountries[0]?.name, accent: "#a8e6cf" },
+    { label: "Top Region", value: topCountries[0]?.flag ?? "—", isText: true, sub: topCountries[0]?.name, accent: "#a8e6cf" },
   ];
 
   // Empty state — no links at all
@@ -326,18 +369,27 @@ export default function AnalyticsClient() {
                 {stat.sub && <div className="text-[#adaaad] text-xs mt-1 truncate">{stat.sub}</div>}
               </div>
             ) : (
-              <div
-                className="font-black text-3xl md:text-4xl tracking-tight"
-                style={{ color: stat.accent }}
-              >
-                {loading || analyticsLoading ? (
-                  <span className="text-[rgba(173,170,173,0.3)]">—</span>
-                ) : mounted ? (
-                  <AnimatedNumber value={stat.value as number} />
-                ) : (
-                  (stat.value as number).toLocaleString()
+              <>
+                <div className="font-black text-3xl md:text-4xl tracking-tight" style={{ color: stat.accent }}>
+                  {loading || analyticsLoading ? (
+                    <span className="text-[rgba(173,170,173,0.3)]">—</span>
+                  ) : mounted ? (
+                    <AnimatedNumber value={stat.value as number} />
+                  ) : (
+                    (stat.value as number).toLocaleString()
+                  )}
+                </div>
+                {"growth" in stat && stat.growth != null && (
+                  <div className="flex items-center gap-1 mt-2">
+                    <span style={{
+                      fontSize: "11px", fontWeight: 700,
+                      color: stat.growth >= 0 ? "#a8e6cf" : "#ff6e84",
+                    }}>
+                      {stat.growth >= 0 ? "↑" : "↓"} {Math.abs(stat.growth)}% {stat.growthLabel}
+                    </span>
+                  </div>
                 )}
-              </div>
+              </>
             )}
           </div>
         ))}
@@ -345,14 +397,32 @@ export default function AnalyticsClient() {
 
       {/* Area Chart */}
       <div className="bg-[#19191c] border border-[rgba(72,71,74,0.1)] rounded-2xl p-6 mb-6">
-        <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
-          <h3 className="text-[#f9f5f8] font-bold text-lg">Clicks Over Time</h3>
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-[#bd9dff] animate-pulse" />
-            <span className="text-[#adaaad] text-[10px] font-bold uppercase tracking-widest">Organic Traffic</span>
+        <div className="flex items-center justify-between mb-1 flex-wrap gap-3">
+          <div>
+            <h3 className="text-[#f9f5f8] font-bold text-lg">Click Performance</h3>
+            <p className="text-[rgba(173,170,173,0.5)] text-xs mt-0.5">
+              Performance trends over the last {timeRange === "24H" ? "24 hours" : timeRange === "7D" ? "7 days" : "30 days"}
+            </p>
+          </div>
+          {/* Time range tabs */}
+          <div style={{
+            display: "flex", gap: "2px", padding: "3px",
+            background: "rgba(0,0,0,0.2)", borderRadius: "10px",
+            border: "1px solid rgba(72,71,74,0.15)",
+          }}>
+            {(["30D", "7D", "24H"] as TimeRange[]).map(r => (
+              <button key={r} onClick={() => setTimeRange(r)} style={{
+                padding: "5px 14px", borderRadius: "8px", border: "none",
+                background: timeRange === r ? "#bd9dff" : "transparent",
+                color: timeRange === r ? "#000" : "rgba(173,170,173,0.7)",
+                fontSize: "12px", fontWeight: 700, cursor: "pointer",
+                fontFamily: "inherit", transition: "all 0.15s",
+              }}>
+                {r}
+              </button>
+            ))}
           </div>
         </div>
-        <p className="text-[rgba(173,170,173,0.5)] text-xs mb-6">Last 13 days</p>
 
         {analyticsLoading ? (
           <div className="h-52 flex items-center justify-center">
@@ -414,6 +484,47 @@ export default function AnalyticsClient() {
                 />
               </AreaChart>
             </ResponsiveContainer>
+          </div>
+        )}
+      </div>
+
+      {/* Top Referrers */}
+      <div className="bg-[#19191c] border border-[rgba(72,71,74,0.1)] rounded-2xl p-6 mb-4">
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <h3 className="text-[#f9f5f8] font-bold text-lg">Top Referrers</h3>
+            <p className="text-[rgba(173,170,173,0.5)] text-xs mt-0.5">Sources driving the most traffic</p>
+          </div>
+        </div>
+        {topReferrers.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-10 gap-3">
+            <div className="text-3xl opacity-30">🔗</div>
+            <p className="text-[rgba(173,170,173,0.4)] text-sm text-center">No referrer data yet.<br />Clicks will show sources here.</p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {topReferrers.map((r, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <span className="text-xl w-7 text-center flex-shrink-0">{r.icon}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[#f9f5f8] text-sm font-bold truncate">{r.label}</span>
+                    <span className="text-[#adaaad] text-sm font-bold ml-3 flex-shrink-0">{r.count.toLocaleString()}</span>
+                  </div>
+                  <div className="bg-[rgba(44,44,47,0.6)] h-1.5 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${r.pct}%`,
+                        background: r.color,
+                        transition: `width 0.8s cubic-bezier(0.4,0,0.2,1) ${i * 60}ms`,
+                        boxShadow: `0 0 8px ${r.color}50`,
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
