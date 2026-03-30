@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 
 export default function LandingPage() {
+  const { data: session } = useSession();
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<string | null>(null);
@@ -72,9 +74,15 @@ export default function LandingPage() {
           >
             GitHub ↗
           </a>
-          <Link href="/dashboard" prefetch={false} className="btn-ghost" style={{ padding: "6px 14px", fontSize: "13px" }}>
-            Dashboard
-          </Link>
+          {session ? (
+            <Link href="/dashboard" prefetch={false} className="btn-primary" style={{ padding: "6px 14px", fontSize: "13px" }}>
+              Dashboard →
+            </Link>
+          ) : (
+            <Link href="/login" prefetch={false} className="btn-ghost" style={{ padding: "6px 14px", fontSize: "13px" }}>
+              Đăng nhập
+            </Link>
+          )}
         </div>
       </nav>
 
@@ -195,11 +203,22 @@ export default function LandingPage() {
                 </p>
               )}
               <p style={{ fontSize: "12px", color: "var(--text-tertiary)", textAlign: "left" }}>
-                Không cần đăng ký.{" "}
-                <Link href="/login" prefetch={false} style={{ color: "var(--accent)", textDecoration: "none" }}>
-                  Đăng nhập
-                </Link>{" "}
-                để quản lý links.
+                {session ? (
+                  <>
+                    Đã đăng nhập.{" "}
+                    <Link href="/dashboard" prefetch={false} style={{ color: "var(--accent)", textDecoration: "none" }}>
+                      Vào Dashboard →
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    Không cần đăng ký.{" "}
+                    <Link href="/login" prefetch={false} style={{ color: "var(--accent)", textDecoration: "none" }}>
+                      Đăng nhập
+                    </Link>{" "}
+                    để quản lý links.
+                  </>
+                )}
               </p>
             </form>
           ) : (
