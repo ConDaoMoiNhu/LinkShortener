@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // @ts-expect-error Vercel build bypass
   eslint: { ignoreDuringBuilds: true },
-  serverExternalPackages: ["@prisma/client", "prisma", "qrcode"],
+  serverExternalPackages: ["@prisma/client", "prisma"],
   async headers() {
     return [
       {
@@ -20,7 +20,7 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        // CORS for API routes — restrict in production
+        // CORS for API routes â€” restrict in production
         source: "/api/:path*",
         headers: [
           {
