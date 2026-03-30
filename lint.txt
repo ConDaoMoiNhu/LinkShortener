@@ -1,0 +1,204 @@
+﻿
+C:\Users\ADMIN\Downloads\link-shortener\__tests__\api\links.test.ts
+  55:83  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  62:83  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  63:68  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  70:83  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  76:10  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\ADMIN\Downloads\link-shortener\app\api\auth\[...nextauth]\route.ts
+   7:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   7:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  13:33  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  13:43  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\ADMIN\Downloads\link-shortener\app\api\links\route.ts
+  112:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\ADMIN\Downloads\link-shortener\app\api\test1\route.ts
+  1:0  error  Parsing error: File appears to be binary
+
+C:\Users\ADMIN\Downloads\link-shortener\app\api\test2\route.ts
+  1:0  error  Parsing error: File appears to be binary
+
+C:\Users\ADMIN\Downloads\link-shortener\app\api\test3\route.ts
+  1:0  error  Parsing error: File appears to be binary
+
+C:\Users\ADMIN\Downloads\link-shortener\app\dashboard\DashboardClient.tsx
+   48:43  warning  'user' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          @typescript-eslint/no-unused-vars
+   63:7   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\ADMIN\Downloads\link-shortener\app\dashboard\DashboardClient.tsx:63:7
+  61 |   useEffect(() => {
+  62 |     if (qrModalSlug) {
+> 63 |       setQrDataUrl(null);
+     |       ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  64 |       const shortUrl = `${window.location.origin}/${qrModalSlug}`;
+  65 |       fetch(`/api/qr?url=${encodeURIComponent(shortUrl)}`)
+  66 |         .then(r => r.json())  react-hooks/set-state-in-effect
+   82:21  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\ADMIN\Downloads\link-shortener\app\dashboard\DashboardClient.tsx:82:21
+  80 |   }, []);
+  81 |
+> 82 |   useEffect(() => { fetchLinks(); }, [fetchLinks]);
+     |                     ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  83 |
+  84 |   const filtered = useMemo(() => {
+  85 |     const sorted = [...links].sort((a, b) => {                                                                     react-hooks/set-state-in-effect
+  420:15  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @next/next/no-img-element
+
+C:\Users\ADMIN\Downloads\link-shortener\app\dashboard\DashboardLayout.tsx
+   34:9   warning  'searchParams' is assigned a value but never used                                                                                                                                                                                                                                        @typescript-eslint/no-unused-vars
+   36:10  warning  'showNotifications' is assigned a value but never used                                                                                                                                                                                                                                   @typescript-eslint/no-unused-vars
+   37:10  warning  'showHelp' is assigned a value but never used                                                                                                                                                                                                                                            @typescript-eslint/no-unused-vars
+   55:9   warning  'handleSearch' is assigned a value but never used                                                                                                                                                                                                                                        @typescript-eslint/no-unused-vars
+  149:17  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\ADMIN\Downloads\link-shortener\app\dashboard\analytics\AnalyticsClient.tsx
+   39:48  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               @typescript-eslint/no-explicit-any
+   86:21  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\ADMIN\Downloads\link-shortener\app\dashboard\analytics\AnalyticsClient.tsx:86:21
+  84 |   }, [selected]);
+  85 |
+> 86 |   useEffect(() => { fetchLinks(); }, [fetchLinks]);
+     |                     ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  87 |
+  88 |   useEffect(() => {
+  89 |     if (!selected) return;                                                   react-hooks/set-state-in-effect
+   90:5   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\ADMIN\Downloads\link-shortener\app\dashboard\analytics\AnalyticsClient.tsx:90:5
+  88 |   useEffect(() => {
+  89 |     if (!selected) return;
+> 90 |     setAnalyticsLoading(true);
+     |     ^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  91 |     setAnalytics(null);
+  92 |     fetch(`/api/analytics/${selected.slug}`)
+  93 |       .then(r => r.json())  react-hooks/set-state-in-effect
+  126:27  warning  'i' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          @typescript-eslint/no-unused-vars
+  177:11  error    Do not use an `<a>` element to navigate to `/dashboard/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        @next/next/no-html-link-for-pages
+  376:39  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               @typescript-eslint/no-explicit-any
+
+C:\Users\ADMIN\Downloads\link-shortener\app\dashboard\components\CreateLinkModal.tsx
+  104:19  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\ADMIN\Downloads\link-shortener\app\dashboard\components\EditLinkModal.tsx
+  20:21  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\ADMIN\Downloads\link-shortener\app\dashboard\components\EditLinkModal.tsx:20:21
+  18 |   const [origin, setOrigin] = useState("");
+  19 |
+> 20 |   useEffect(() => { setOrigin(window.location.origin); }, []);
+     |                     ^^^^^^^^^ Avoid calling setState() directly within an effect
+  21 |
+  22 |   const handleSave = async () => {
+  23 |     setLoading(true);  react-hooks/set-state-in-effect
+
+C:\Users\ADMIN\Downloads\link-shortener\app\dashboard\links\LinksClient.tsx
+   51:7   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\ADMIN\Downloads\link-shortener\app\dashboard\links\LinksClient.tsx:51:7
+  49 |   useEffect(() => {
+  50 |     if (qrModalSlug) {
+> 51 |       setQrDataUrl(null);
+     |       ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  52 |       const shortUrl = `${window.location.origin}/${qrModalSlug}`;
+  53 |       fetch(`/api/qr?url=${encodeURIComponent(shortUrl)}`)
+  54 |         .then(r => r.json())  react-hooks/set-state-in-effect
+   70:21  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\ADMIN\Downloads\link-shortener\app\dashboard\links\LinksClient.tsx:70:21
+  68 |   }, []);
+  69 |
+> 70 |   useEffect(() => { fetchLinks(); }, [fetchLinks]);
+     |                     ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  71 |
+  72 |   const filtered = useMemo(() => links.filter(l => {
+  73 |     const matchesFilter =                                                                        react-hooks/set-state-in-effect
+  308:15  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     @next/next/no-img-element
+
+C:\Users\ADMIN\Downloads\link-shortener\app\dashboard\settings\SettingsClient.tsx
+  112:21  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Users\ADMIN\Downloads\link-shortener\app\dashboard\settings\page.tsx
+  11:7  error  'user' is never reassigned. Use 'const' instead  prefer-const
+
+C:\Users\ADMIN\Downloads\link-shortener\app\layout.tsx
+  38:9  warning  A font-display parameter is missing (adding `&display=optional` is recommended). See: https://nextjs.org/docs/messages/google-font-display                       @next/next/google-font-display
+  38:9  warning  Custom fonts not added in `pages/_document.js` will only load for a single page. This is discouraged. See: https://nextjs.org/docs/messages/no-page-custom-font  @next/next/no-page-custom-font
+
+C:\Users\ADMIN\Downloads\link-shortener\lib\auth.ts
+  30:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\ADMIN\Downloads\link-shortener\lib\dev-session.ts
+  3:10  warning  'headers' is defined but never used  @typescript-eslint/no-unused-vars
+  3:19  warning  'cookies' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\ADMIN\Downloads\link-shortener\lib\theme.tsx
+  17:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\ADMIN\Downloads\link-shortener\lib\theme.tsx:17:5
+  15 |     const stored = localStorage.getItem("theme") as Theme | null;
+  16 |     const initial = stored ?? "dark";
+> 17 |     setTheme(initial);
+     |     ^^^^^^^^ Avoid calling setState() directly within an effect
+  18 |     document.documentElement.classList.toggle("light", initial === "light");
+  19 |   }, []);
+  20 |  react-hooks/set-state-in-effect
+
+C:\Users\ADMIN\Downloads\link-shortener\types\next-auth.d.ts
+  1:8  warning  'NextAuth' is defined but never used  @typescript-eslint/no-unused-vars
+
+Γ£û 42 problems (26 errors, 16 warnings)
+  1 error and 0 warnings potentially fixable with the `--fix` option.
+
