@@ -4,9 +4,6 @@ import GitHubProvider from "next-auth/providers/github";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { db } from "./db";
 
-const useSecureCookies = process.env.NEXTAUTH_URL?.startsWith("https://") ?? false;
-const cookiePrefix = useSecureCookies ? "__Secure-" : "";
-
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(db) as any,
   providers: [
@@ -25,18 +22,6 @@ export const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: "/login",
-  },
-  cookies: {
-    sessionToken: {
-      name: `${cookiePrefix}next-auth.session-token`,
-      options: {
-        httpOnly: true,
-        sameSite: "lax",
-        path: "/",
-        secure: useSecureCookies,
-        maxAge: 30 * 24 * 60 * 60,
-      },
-    },
   },
   callbacks: {
     jwt({ token, user }) {
