@@ -55,6 +55,7 @@ export async function proxy(request: NextRequest) {
               headers: {
                 "user-agent": request.headers.get("user-agent") ?? "",
                 "x-vercel-ip-country": request.headers.get("x-vercel-ip-country") ?? "",
+                "referer": request.headers.get("referer") ?? "",
               },
             }).catch(() => {});
             return NextResponse.redirect(originalUrl, { status: 301 });
