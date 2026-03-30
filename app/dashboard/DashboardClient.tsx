@@ -19,12 +19,6 @@ const STATUS_STYLES: Record<string, string> = {
   EXPIRED: "bg-[rgba(255,80,80,0.15)] text-[#ff6060]",
 };
 
-const AVATAR_COLORS = [
-  { bg: "#2c2c2f", text: "#f9f5f8" },
-  { bg: "#b28cff", text: "#2e006c" },
-  { bg: "#fe81a4", text: "#5a0027" },
-  { bg: "#2c2c2f", text: "#f9f5f8" },
-];
 
 function getStatus(link: CachedLink): "ACTIVE" | "EXPIRED" {
   if (link.expiresAt && new Date(link.expiresAt) < new Date()) return "EXPIRED";
@@ -67,13 +61,7 @@ export default function DashboardClient({ user }: { user: User }) {
   const paginated = useMemo(() => filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE), [filtered, page]);
   const totalClicks = useMemo(() => links.reduce((s, l) => s + (l._count?.clicks ?? 0), 0), [links]);
   const activeCount = useMemo(() => links.filter(l => getStatus(l) === "ACTIVE").length, [links]);
-  const avatarStack = useMemo(() => [
-    ...links.slice(0, 3).map((l, i) => ({
-      initials: l.slug.slice(0, 2).toUpperCase(),
-      ...AVATAR_COLORS[i % AVATAR_COLORS.length],
-    })),
-    links.length > 3 ? { initials: `+${links.length - 3}`, ...AVATAR_COLORS[3] } : null,
-  ].filter(Boolean) as { initials: string; bg: string; text: string }[], [links]);
+  const recentSlugs = useMemo(() => links.slice(0, 3).map(l => l.slug), [links]);
 
   const handleCopy = (slug: string) => {
     navigator.clipboard.writeText(`${window.location.origin}/${slug}`).catch(() => {});
@@ -141,16 +129,20 @@ export default function DashboardClient({ user }: { user: User }) {
             <div className="text-[#f9f5f8] font-black text-4xl tracking-[-1.8px] leading-tight mb-6">
               {loading ? "—" : activeCount}
             </div>
-            <div className="flex items-center">
-              {avatarStack.map((av, i) => (
-                <div
-                  key={i}
-                  className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs border-2 border-[#19191c] -ml-2 first:ml-0 shrink-0"
-                  style={{ backgroundColor: av.bg, color: av.text, zIndex: avatarStack.length - i }}
+            <div className="flex flex-wrap gap-2">
+              {recentSlugs.map((slug) => (
+                <span
+                  key={slug}
+                  className="px-2.5 py-1 rounded-lg bg-[#2c2c2f] text-[#adaaad] text-xs font-mono font-medium truncate max-w-[100px]"
                 >
-                  {av.initials}
-                </div>
+                  /{slug}
+                </span>
               ))}
+              {links.length > 3 && (
+                <span className="px-2.5 py-1 rounded-lg bg-[#2c2c2f] text-[#adaaad] text-xs font-medium">
+                  +{links.length - 3} more
+                </span>
+              )}
             </div>
           </div>
         </div>
