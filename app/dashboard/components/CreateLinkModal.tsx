@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Copy, Check, Download } from "lucide-react";
+import { X, Copy, Check, Download, Eye, EyeOff } from "lucide-react";
 import type { CachedLink } from "@/lib/links-cache";
 
 interface Props {
@@ -13,6 +13,8 @@ export default function CreateLinkModal({ onClose, onCreated }: Props) {
   const [destinationUrl, setDestinationUrl] = useState("");
   const [slug, setSlug] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<{ slug: string; shortUrl: string; link: CachedLink } | null>(null);
@@ -40,17 +42,15 @@ export default function CreateLinkModal({ onClose, onCreated }: Props) {
       });
       if (!res.ok) {
         const data = await res.json();
-        setError(data.error ?? "Lỗi tạo link");
+        setError(data.error ?? "Failed to create link");
       } else {
         const data = await res.json();
         const shortUrl = `${window.location.origin}/${data.slug}`;
         const link: CachedLink = { ...data, _count: { clicks: 0 } };
         setResult({ slug: data.slug, shortUrl, link });
-
-        // Fetch QR code
         fetch(`/api/qr?url=${encodeURIComponent(shortUrl)}`)
-          .then((r) => r.json())
-          .then((d) => setQrDataUrl(d.qr ?? null))
+          .then(r => r.json())
+          .then(d => setQrDataUrl(d.qr ?? null))
           .catch(() => {});
       }
     } catch {
@@ -70,13 +70,15 @@ export default function CreateLinkModal({ onClose, onCreated }: Props) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
       <div className="relative w-full max-w-xl bg-[rgba(38,37,40,0.95)] rounded-3xl border border-[rgba(72,71,74,0.15)] shadow-[0_40px_80px_0_rgba(189,157,255,0.12)] overflow-hidden">
+        {/* Decorative blurs */}
         <div className="absolute bottom-[-95px] right-[-95px] w-64 h-64 rounded-xl bg-[rgba(189,157,255,0.1)] blur-[50px] pointer-events-none" />
         <div className="absolute top-[-95px] left-[-95px] w-64 h-64 rounded-xl bg-[rgba(195,139,245,0.1)] blur-[50px] pointer-events-none" />
 
+        {/* Header */}
         <div className="flex items-start justify-between px-8 pt-8 pb-4 relative z-10">
           <div>
             <h2 className="text-[#f9f5f8] font-black text-3xl tracking-tight">Create New Link</h2>
-            <p className="text-[#adaaad] text-sm mt-1">Configure your shortlink.</p>
+            <p className="text-[#adaaad] text-sm mt-1">Configure your editorial shortlink.</p>
           </div>
           <button
             onClick={onClose}
@@ -86,24 +88,19 @@ export default function CreateLinkModal({ onClose, onCreated }: Props) {
           </button>
         </div>
 
+        {/* Body */}
         <div className="px-8 pb-8 flex flex-col gap-6 relative z-10">
-
-          {/* Result state: show short URL + QR */}
           {result ? (
+            /* ── Success state ── */
             <div className="flex flex-col items-center gap-6 py-2">
               {qrDataUrl ? (
                 <div className="relative group">
-                  <img
-                    src={qrDataUrl}
-                    alt="QR code"
-                    className="w-40 h-40 rounded-2xl border border-[rgba(189,157,255,0.2)]"
-                  />
+                  <img src={qrDataUrl} alt="QR code" className="w-40 h-40 rounded-2xl border border-[rgba(189,157,255,0.2)]" />
                   <a
                     href={qrDataUrl}
                     download={`qr-${result.slug}.png`}
                     className="absolute inset-0 flex items-center justify-center rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity"
                     style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
-                    title="Download QR PNG"
                   >
                     <Download size={28} className="text-white" />
                   </a>
@@ -113,23 +110,15 @@ export default function CreateLinkModal({ onClose, onCreated }: Props) {
                   <div className="w-6 h-6 border-2 border-[#bd9dff] border-t-transparent rounded-full animate-spin" />
                 </div>
               )}
-
               {qrDataUrl && (
-                <a
-                  href={qrDataUrl}
-                  download={`qr-${result.slug}.png`}
-                  className="flex items-center gap-1.5 text-[#adaaad] hover:text-[#bd9dff] text-xs font-bold transition-colors -mt-3"
-                >
+                <a href={qrDataUrl} download={`qr-${result.slug}.png`} className="flex items-center gap-1.5 text-[#adaaad] hover:text-[#bd9dff] text-xs font-bold transition-colors -mt-3">
                   <Download size={12} /> Download QR PNG
                 </a>
               )}
-
               <div className="w-full text-center">
-                <p className="text-[#adaaad] text-xs mb-2">Link đã tạo thành công</p>
+                <p className="text-[#adaaad] text-xs mb-2">Link created successfully</p>
                 <div className="flex items-center gap-2 bg-[#131315] border border-[rgba(189,157,255,0.2)] rounded-xl px-4 py-3">
-                  <span className="text-[#bd9dff] font-bold text-sm flex-1 text-left truncate">
-                    {result.shortUrl}
-                  </span>
+                  <span className="text-[#bd9dff] font-bold text-sm flex-1 text-left truncate">{result.shortUrl}</span>
                   <button
                     onClick={handleCopy}
                     className="flex items-center gap-1.5 shrink-0 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"
@@ -138,21 +127,22 @@ export default function CreateLinkModal({ onClose, onCreated }: Props) {
                       : { background: "#2c2c2f", color: "#f9f5f8" }}
                   >
                     {copied ? <Check size={12} /> : <Copy size={12} />}
-                    {copied ? "Đã copy" : "Copy"}
+                    {copied ? "Copied" : "Copy"}
                   </button>
                 </div>
               </div>
-
               <button
                 onClick={() => { if (result) onCreated?.(result.link); onClose(); }}
                 className="w-full py-3 rounded-xl font-bold text-sm text-black transition-opacity hover:opacity-90"
                 style={{ backgroundImage: "linear-gradient(135deg, rgb(189,157,255) 0%, rgb(138,76,252) 100%)" }}
               >
-                Xong
+                Done
               </button>
             </div>
           ) : (
+            /* ── Form state ── */
             <>
+              {/* Destination URL */}
               <div className="flex flex-col gap-2">
                 <label className="text-[#adaaad] text-[11px] font-bold tracking-[1.2px] uppercase">
                   Destination URL *
@@ -162,12 +152,13 @@ export default function CreateLinkModal({ onClose, onCreated }: Props) {
                     type="url"
                     placeholder="https://your-destination-url.com"
                     value={destinationUrl}
-                    onChange={(e) => setDestinationUrl(e.target.value)}
+                    onChange={e => setDestinationUrl(e.target.value)}
                     className="bg-transparent text-[#f9f5f8] text-base outline-none w-full placeholder-[rgba(173,170,173,0.4)]"
                   />
                 </div>
               </div>
 
+              {/* Slug + Expiry */}
               <div className="grid grid-cols-2 gap-6">
                 <div className="flex flex-col gap-2">
                   <label className="text-[#adaaad] text-[11px] font-bold tracking-[1.2px] uppercase">
@@ -181,7 +172,7 @@ export default function CreateLinkModal({ onClose, onCreated }: Props) {
                       type="text"
                       placeholder="my-slug"
                       value={slug}
-                      onChange={(e) => setSlug(e.target.value)}
+                      onChange={e => setSlug(e.target.value)}
                       className="bg-transparent text-[#f9f5f8] text-sm outline-none flex-1 px-2 py-[18px] placeholder-[rgba(173,170,173,0.4)]"
                     />
                   </div>
@@ -194,17 +185,41 @@ export default function CreateLinkModal({ onClose, onCreated }: Props) {
                     <input
                       type="date"
                       value={expiryDate}
-                      onChange={(e) => setExpiryDate(e.target.value)}
+                      onChange={e => setExpiryDate(e.target.value)}
                       className="bg-transparent text-[#f9f5f8] text-base outline-none flex-1 [color-scheme:dark]"
                     />
                   </div>
                 </div>
               </div>
 
-              {error && (
-                <p className="text-[#ff6060] text-sm">{error}</p>
-              )}
+              {/* Password */}
+              <div className="flex flex-col gap-2">
+                <label className="text-[#adaaad] text-[11px] font-bold tracking-[1.2px] uppercase">
+                  Optional Password
+                </label>
+                <div className="relative">
+                  <div className="bg-black rounded-lg border border-[rgba(72,71,74,0.15)] px-4 py-[18px]">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      className="bg-transparent text-[#f9f5f8] text-base outline-none w-full pr-8 placeholder-[rgba(173,170,173,0.4)]"
+                    />
+                  </div>
+                  <button
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[rgba(173,170,173,0.6)] hover:text-[#adaaad] transition-colors"
+                    type="button"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
 
+              {error && <p className="text-[#ff6060] text-sm">{error}</p>}
+
+              {/* Actions */}
               <div className="flex gap-4 items-center pt-4 border-t border-[rgba(72,71,74,0.1)]">
                 <button
                   onClick={handleCreate}

@@ -1,9 +1,13 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { ThemeProvider, useTheme } from "@/lib/theme";
+import {
+  LayoutDashboard, Link2, BarChart2, Settings,
+  HelpCircle, LogOut, Bell, Search,
+} from "lucide-react";
 
 interface User {
   id?: string;
@@ -12,70 +16,14 @@ interface User {
   image?: string | null;
 }
 
-const S = {
-  surface: "var(--surface)",
-  surfaceLow: "var(--surface-low)",
-  surfaceContainer: "var(--surface-container)",
-  surfaceHigh: "var(--surface-high)",
-  surfaceBright: "var(--surface-bright)",
-  onSurface: "var(--on-surface)",
-  onSurfaceVariant: "var(--on-surface-variant)",
-  primary: "var(--primary)",
-};
-
 const navItems = [
-  { label: "Dashboard", href: "/dashboard", icon: "dashboard" },
-  { label: "Links", href: "/dashboard/links", icon: "link" },
-  { label: "Analytics", href: "/dashboard/analytics", icon: "analytics" },
-  { label: "Settings", href: "/dashboard/settings", icon: "settings" },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/dashboard/links", label: "Links", icon: Link2 },
+  { href: "/dashboard/analytics", label: "Analytics", icon: BarChart2 },
+  { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
 
-function Avatar({ user, size = 32 }: { user: User; size?: number }) {
-  if (user.image) {
-    return (
-      <img
-        src={user.image}
-        alt=""
-        style={{
-          width: size, height: size, borderRadius: "50%",
-          border: `1px solid rgba(189,157,255,0.25)`, flexShrink: 0,
-        }}
-      />
-    );
-  }
-  return (
-    <div style={{
-      width: size, height: size, borderRadius: "50%",
-      background: S.surfaceBright, display: "flex", alignItems: "center",
-      justifyContent: "center", fontSize: size * 0.375, fontWeight: 700,
-      color: S.primary, flexShrink: 0,
-    }}>
-      {(user.name ?? user.email ?? "U").charAt(0).toUpperCase()}
-    </div>
-  );
-}
-
-function ThemeToggle() {
-  const { theme, toggle } = useTheme();
-  return (
-    <button
-      onClick={toggle}
-      title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-      style={{
-        width: "32px", height: "32px", borderRadius: "10px",
-        background: "rgba(255,255,255,0.05)", border: "1px solid rgba(72,71,74,0.15)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        fontSize: "15px", cursor: "pointer", transition: "background 0.2s",
-      }}
-      onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.1)")}
-      onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
-    >
-      {theme === "dark" ? "☀️" : "🌙"}
-    </button>
-  );
-}
-
-function DashboardLayoutInner({
+export default function DashboardLayout({
   user,
   children,
 }: {
@@ -83,259 +31,136 @@ function DashboardLayoutInner({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
+  const notifRef = useRef<HTMLDivElement>(null);
+  const helpRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) setShowNotifications(false);
+      if (helpRef.current && !helpRef.current.contains(e.target as Node)) setShowHelp(false);
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   function isActive(href: string) {
     if (href === "/dashboard") return pathname === "/dashboard";
     return pathname.startsWith(href);
   }
 
+  const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && e.currentTarget.value.trim()) {
+      // Set value in query and navigate
+      router.push(`/dashboard/links?search=${encodeURIComponent(e.currentTarget.value.trim())}`);
+    }
+  };
+
   return (
-    <div style={{ minHeight: "100vh", background: S.surface, color: S.onSurface }}>
-
-      {/* ── Header (fixed top) ── */}
-      <header style={{
-        position: "fixed", top: 0, left: 0, right: 0, zIndex: 50,
-        height: "64px", display: "flex", alignItems: "center",
-        justifyContent: "space-between", padding: "0 24px",
-        background: "var(--header-bg)", backdropFilter: "blur(20px)",
-        WebkitBackdropFilter: "blur(20px)",
-        boxShadow: "0 1px 0 rgba(72,71,74,0.1), 0 20px 40px rgba(189,157,255,0.06)",
-      }}>
+    <div className="flex h-screen bg-[#0e0e10] text-[#f9f5f8] overflow-hidden">
+      {/* ── Sidebar ── */}
+      <aside className="w-[220px] shrink-0 bg-[#131315] flex flex-col h-full border-r border-[rgba(72,71,74,0.1)]">
         {/* Logo */}
-        <Link href="/" style={{ textDecoration: "none" }}>
-          <span style={{ fontSize: "22px", fontWeight: 900, letterSpacing: "-0.05em" }}>
-            <span style={{ color: S.onSurface }}>ls</span>
-            <span style={{ color: S.primary }}>/</span>
-          </span>
-        </Link>
-
-        {/* Right side */}
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <ThemeToggle />
-          <Avatar user={user} size={30} />
-          <span style={{ fontSize: "13px", color: S.onSurfaceVariant }}>
-            {user.name ?? user.email}
-          </span>
-          {/* Logout — hidden on mobile (bottom nav handles it) */}
-          <button
-            onClick={() => signOut({ callbackUrl: "/" })}
-            style={{
-              padding: "6px 14px", borderRadius: "10px",
-              border: "1px solid rgba(72,71,74,0.2)", background: "transparent",
-              color: S.onSurfaceVariant, fontSize: "12px", fontWeight: 500,
-              cursor: "pointer", transition: "all 0.2s", fontFamily: "inherit",
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.background = S.surfaceBright;
-              e.currentTarget.style.color = S.onSurface;
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.background = "transparent";
-              e.currentTarget.style.color = S.onSurfaceVariant;
-            }}
-            className="hidden md:block"
-          >
-            Đăng xuất
-          </button>
-        </div>
-      </header>
-
-      {/* ── Sidebar (desktop, fixed left) ── */}
-      <aside
-        className="hidden md:flex"
-        style={{
-          position: "fixed", left: 0, top: 0, height: "100vh", width: "240px",
-          background: S.surfaceLow, padding: "80px 16px 32px",
-          flexDirection: "column", gap: "4px", zIndex: 40,
-          borderRight: "1px solid rgba(72,71,74,0.06)",
-        }}
-      >
-        {/* Brand area with purple link icon */}
-        <div style={{
-          marginBottom: "20px", padding: "0 8px",
-          display: "flex", alignItems: "center", gap: "12px",
-        }}>
-          <div style={{
-            width: "36px", height: "36px", borderRadius: "10px",
-            background: "linear-gradient(135deg, #bd9dff 0%, #8a4cfc 100%)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            flexShrink: 0,
-          }}>
-            <span className="material-symbols-outlined" style={{ color: "#000", fontSize: "18px" }}>
-              link
-            </span>
-          </div>
-          <div style={{ minWidth: 0 }}>
-            <p style={{ fontSize: "15px", fontWeight: 900, color: S.onSurface, letterSpacing: "-0.04em", lineHeight: 1.2 }}>
-              ls<span style={{ color: S.primary }}>/</span>
-            </p>
-            <p style={{ fontSize: "11px", color: "rgba(173,170,173,0.45)" }}>
-              Link Dashboard
-            </p>
-          </div>
-        </div>
-
-        {/* User info */}
-        <div style={{
-          marginBottom: "20px", padding: "12px",
-          background: S.surfaceContainer, borderRadius: "12px",
-          display: "flex", alignItems: "center", gap: "10px",
-          border: "1px solid rgba(72,71,74,0.08)",
-        }}>
-          <Avatar user={user} size={34} />
-          <div style={{ minWidth: 0 }}>
-            <p style={{ fontSize: "13px", fontWeight: 700, color: S.onSurface, lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {user.name ?? "User"}
-            </p>
-            <p style={{ fontSize: "11px", color: "rgba(173,170,173,0.5)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {user.email}
-            </p>
+        <div className="px-4 pt-6 pb-6">
+          <div className="flex items-center gap-3">
+            <div className="bg-[rgba(189,157,255,0.1)] w-10 h-10 rounded-lg flex items-center justify-center shrink-0">
+              <svg width="20" height="10" viewBox="0 0 20 10" fill="none">
+                <path
+                  d="M9 10H5C3.61667 10 2.4375 9.5125 1.4625 8.5375C0.4875 7.5625 0 6.38333 0 5C0 3.61667 0.4875 2.4375 1.4625 1.4625C2.4375 0.4875 3.61667 0 5 0H9V2H5C4.16667 2 3.45833 2.29167 2.875 2.875C2.29167 3.45833 2 4.16667 2 5C2 5.83333 2.29167 6.54167 2.875 7.125C3.45833 7.70833 4.16667 8 5 8H9V10M6 6V4H14V6H6M11 10V8H15C15.8333 8 16.5417 7.70833 17.125 7.125C17.7083 6.54167 18 5.83333 18 5C18 4.16667 17.7083 3.45833 17.125 2.875C16.5417 2.29167 15.8333 2 15 2H11V0H15C16.3833 0 17.5625 0.4875 18.5375 1.4625C19.5125 2.4375 20 3.61667 20 5C20 6.38333 19.5125 7.5625 18.5375 8.5375C17.5625 9.5125 16.3833 10 15 10H11"
+                  fill="#BD9DFF"
+                />
+              </svg>
+            </div>
+            <div>
+              <div className="text-[#f9f5f8] font-bold text-sm leading-tight">SnapLink</div>
+              <div className="text-[rgba(249,245,248,0.5)] text-xs">Editorial Curator</div>
+            </div>
           </div>
         </div>
 
         {/* Nav */}
-        <nav style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-          {navItems.map((item) => {
-            const active = isActive(item.href);
+        <nav className="flex flex-col gap-1 px-2 flex-1">
+          {navItems.map(({ href, label, icon: Icon }) => {
+            const active = isActive(href);
             return (
               <Link
-                key={item.href}
-                href={item.href}
-                style={{
-                  display: "flex", alignItems: "center", gap: "12px",
-                  padding: "10px 12px", borderRadius: "10px", textDecoration: "none",
-                  borderLeft: active ? `3px solid ${S.primary}` : "3px solid transparent",
-                  background: active ? S.surfaceContainer : "transparent",
-                  color: active ? S.primary : "rgba(249,245,248,0.4)",
-                  fontSize: "14px", fontWeight: 500,
-                  transition: "all 0.2s",
-                }}
-                onMouseEnter={e => {
-                  if (!active) {
-                    e.currentTarget.style.background = "var(--hover-row)";
-                    e.currentTarget.style.color = S.onSurface;
-                  }
-                }}
-                onMouseLeave={e => {
-                  if (!active) {
-                    e.currentTarget.style.background = "transparent";
-                    e.currentTarget.style.color = "rgba(249,245,248,0.4)";
-                  }
-                }}
+                key={href}
+                href={href}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors relative ${
+                  active
+                    ? "bg-[#19191c] text-[#bd9dff]"
+                    : "text-[rgba(249,245,248,0.5)] hover:text-[rgba(249,245,248,0.8)] hover:bg-[rgba(255,255,255,0.03)]"
+                }`}
               >
-                <span className="material-symbols-outlined" style={{ fontSize: "20px" }}>
-                  {item.icon}
-                </span>
-                {item.label}
+                {active && (
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#bd9dff] rounded-l-lg" />
+                )}
+                <Icon size={16} />
+                {label}
               </Link>
             );
           })}
-
-          {/* Support — static link */}
-          <a
-            href="mailto:support@example.com"
-            style={{
-              display: "flex", alignItems: "center", gap: "12px",
-              padding: "10px 12px", borderRadius: "10px", textDecoration: "none",
-              borderLeft: "3px solid transparent",
-              color: "rgba(249,245,248,0.4)",
-              fontSize: "14px", fontWeight: 500,
-              transition: "all 0.2s",
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.background = "var(--hover-row)";
-              e.currentTarget.style.color = S.onSurface;
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.background = "transparent";
-              e.currentTarget.style.color = "rgba(249,245,248,0.4)";
-            }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: "20px" }}>
-              support
-            </span>
-            Support
-          </a>
         </nav>
 
-        {/* Logout at bottom */}
-        <div style={{
-          marginTop: "auto", borderTop: "1px solid rgba(72,71,74,0.1)",
-          paddingTop: "16px",
-        }}>
+        {/* Bottom */}
+        <div className="px-2 pb-6 border-t border-[rgba(72,71,74,0.1)] pt-4 flex flex-col gap-1">
+          <a
+            href="mailto:support@example.com"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[rgba(249,245,248,0.5)] hover:text-[rgba(249,245,248,0.8)] hover:bg-[rgba(255,255,255,0.03)] transition-colors"
+          >
+            <HelpCircle size={16} />
+            Support
+          </a>
           <button
             onClick={() => signOut({ callbackUrl: "/" })}
-            style={{
-              display: "flex", alignItems: "center", gap: "12px",
-              padding: "10px 12px", borderRadius: "10px", background: "transparent",
-              border: "none", color: "rgba(249,245,248,0.4)", fontSize: "14px",
-              fontWeight: 500, cursor: "pointer", width: "100%", textAlign: "left",
-              transition: "color 0.2s", fontFamily: "inherit",
-            }}
-            onMouseEnter={e => (e.currentTarget.style.color = S.onSurface)}
-            onMouseLeave={e => (e.currentTarget.style.color = "rgba(249,245,248,0.4)")}
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[rgba(249,245,248,0.5)] hover:text-[rgba(249,245,248,0.8)] hover:bg-[rgba(255,255,255,0.03)] transition-colors w-full text-left"
           >
-            <span className="material-symbols-outlined" style={{ fontSize: "20px" }}>
-              logout
-            </span>
-            Đăng xuất
+            <LogOut size={16} />
+            Logout
           </button>
         </div>
       </aside>
 
-      {/* ── Main content ── */}
-      <main
-        className="dashboard-main pb-24 md:pb-8"
-        style={{ paddingTop: "64px" }}
-      >
-        <div key={pathname} className="fade-up">
+      {/* ── Main ── */}
+      <div className="flex flex-col flex-1 min-w-0 h-full">
+        {/* Header */}
+        <header className="h-16 border-b border-[rgba(72,71,74,0.1)] flex items-center justify-between px-6 shrink-0 bg-[rgba(14,14,16,0.8)] backdrop-blur-sm">
+          <div className="flex items-center gap-3 bg-[#19191c] border border-[rgba(72,71,74,0.1)] rounded-lg px-3 h-9 w-64">
+            <Search size={14} className="text-[#adaaad] shrink-0" />
+            <input
+              type="text"
+              placeholder="Search links..."
+              className="bg-transparent text-sm text-[#f9f5f8] placeholder-[rgba(173,170,173,0.5)] outline-none flex-1"
+            />
+          </div>
+          <div className="flex items-center gap-4">
+            <button className="text-[#adaaad] hover:text-[#f9f5f8] transition-colors relative">
+              <Bell size={18} />
+              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-[#bd9dff] rounded-full" />
+            </button>
+            <button className="text-[#adaaad] hover:text-[#f9f5f8] transition-colors">
+              <HelpCircle size={18} />
+            </button>
+            <div className="w-8 h-8 rounded-xl overflow-hidden bg-[#262528] flex items-center justify-center shrink-0">
+              {user.image ? (
+                <img src={user.image} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-[#bd9dff] font-bold text-xs">
+                  {(user.name ?? user.email ?? "U").charAt(0).toUpperCase()}
+                </span>
+              )}
+            </div>
+          </div>
+        </header>
+
+        {/* Page content */}
+        <main className="flex-1 overflow-y-auto">
           {children}
-        </div>
-      </main>
-
-      {/* ── Mobile bottom nav ── */}
-      <nav
-        className="flex md:hidden light-nav-bottom"
-        style={{
-          position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50,
-          alignItems: "center", justifyContent: "space-around",
-          padding: "10px 8px 20px",
-          background: "var(--bottom-nav-bg)", backdropFilter: "blur(20px)",
-          WebkitBackdropFilter: "blur(20px)",
-          borderTop: "1px solid rgba(72,71,74,0.12)",
-        }}
-      >
-        {navItems.map((item) => {
-          const active = isActive(item.href);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              style={{
-                display: "flex", flexDirection: "column", alignItems: "center",
-                gap: "3px", textDecoration: "none",
-                color: active ? S.primary : S.onSurfaceVariant,
-                fontSize: "10px", fontWeight: active ? 700 : 500,
-                transition: "color 0.2s", padding: "4px 12px",
-              }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: "22px" }}>
-                {item.icon}
-              </span>
-              {item.label}
-            </Link>
-          );
-        })}
-      </nav>
-
+        </main>
+      </div>
     </div>
-  );
-}
-
-export default function DashboardLayout({ user, children }: { user: User; children: React.ReactNode }) {
-  return (
-    <ThemeProvider>
-      <DashboardLayoutInner user={user}>{children}</DashboardLayoutInner>
-    </ThemeProvider>
   );
 }

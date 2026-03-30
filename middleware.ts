@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 const SLUG_EXCLUDED = ["/api", "/dashboard", "/login", "/_next", "/favicon.ico"];
 
-function isSlugPath(pathname: string): boolean {
+export function isSlugPath(pathname: string): boolean {
   return (
     pathname !== "/" &&
     !SLUG_EXCLUDED.some((p) => pathname.startsWith(p)) &&
@@ -10,7 +10,7 @@ function isSlugPath(pathname: string): boolean {
   );
 }
 
-export async function proxy(request: NextRequest) {
+export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Auth protection for dashboard (skip in dev)

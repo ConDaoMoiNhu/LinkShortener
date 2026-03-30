@@ -2,8 +2,9 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import dynamic from "next/dynamic";
-import { Copy, Trash2, ChevronLeft, ChevronRight, Check, Search, Pencil } from "lucide-react";
+import { Copy, Trash2, ChevronLeft, ChevronRight, Check, QrCode, Edit2 } from "lucide-react";
 import { getLinksCache, setLinksCache, invalidateLinksCache, CachedLink } from "@/lib/links-cache";
+import Link from "next/link";
 
 const CreateLinkModal = dynamic(() => import("./components/CreateLinkModal"), { ssr: false });
 const EditLinkModal = dynamic(() => import("./components/EditLinkModal"), { ssr: false });
@@ -17,32 +18,56 @@ interface User {
 
 const STATUS_STYLES: Record<string, string> = {
   ACTIVE: "bg-[#fe81a4] text-[#5a0027]",
+  PAUSED: "bg-[#2c2c2f] text-[#adaaad] border border-[rgba(72,71,74,0.3)]",
   EXPIRED: "bg-[rgba(255,80,80,0.15)] text-[#ff6060]",
 };
 
+const AVATAR_COLORS = [
+  { bg: "#b28cff", text: "#2e006c" },
+  { bg: "#fe81a4", text: "#5a0027" },
+  { bg: "#2c2c2f", text: "#f9f5f8" },
+  { bg: "#81d4fe", text: "#003c52" },
+  { bg: "#a8e6cf", text: "#1b4332" },
+];
 
-function getStatus(link: CachedLink): "ACTIVE" | "EXPIRED" {
+function getStatus(link: CachedLink): "ACTIVE" | "PAUSED" | "EXPIRED" {
   if (link.expiresAt && new Date(link.expiresAt) < new Date()) return "EXPIRED";
   return "ACTIVE";
 }
 
 function formatClicks(n: number): string {
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
   if (n >= 1000) return (n / 1000).toFixed(1) + "k";
   return String(n);
+}
+
+function getInitials(slug: string): string {
+  return slug.slice(0, 2).toUpperCase();
 }
 
 export default function DashboardClient({ user }: { user: User }) {
   const [links, setLinks] = useState<CachedLink[]>(() => getLinksCache() ?? []);
   const [loading, setLoading] = useState(() => getLinksCache() === null);
-  const [filter, setFilter] = useState<"All" | "Active" | "Expired">("All");
+  const [filter, setFilter] = useState<"All" | "Active" | "Paused">("All");
   const [page, setPage] = useState(1);
   const [showModal, setShowModal] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [bulkDeleting, setBulkDeleting] = useState(false);
   const [editingLink, setEditingLink] = useState<CachedLink | null>(null);
+  const [qrModalSlug, setQrModalSlug] = useState<string | null>(null);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [sortOrder, setSortOrder] = useState<"Newest" | "Oldest">("Newest");
   const PER_PAGE = 5;
+
+  useEffect(() => {
+    if (qrModalSlug) {
+      setQrDataUrl(null);
+      const shortUrl = `${window.location.origin}/${qrModalSlug}`;
+      fetch(`/api/qr?url=${encodeURIComponent(shortUrl)}`)
+        .then(r => r.json())
+        .then(d => setQrDataUrl(d.qr ?? null))
+        .catch(() => {});
+    }
+  }, [qrModalSlug]);
 
   const fetchLinks = useCallback(async () => {
     const res = await fetch("/api/links");
@@ -56,25 +81,26 @@ export default function DashboardClient({ user }: { user: User }) {
 
   useEffect(() => { fetchLinks(); }, [fetchLinks]);
 
-  const filtered = useMemo(() => links.filter(l => {
-    if (filter !== "All") {
+  const filtered = useMemo(() => {
+    const sorted = [...links].sort((a, b) => {
+      const db = new Date(b.createdAt).getTime();
+      const da = new Date(a.createdAt).getTime();
+      return sortOrder === "Newest" ? db - da : da - db;
+    });
+    return sorted.filter(l => {
+      if (filter === "All") return true;
       const s = getStatus(l);
-      if (filter === "Active" && s !== "ACTIVE") return false;
-      if (filter === "Expired" && s !== "EXPIRED") return false;
-    }
-    if (search) {
-      const q = search.toLowerCase();
-      return l.slug.toLowerCase().includes(q) || l.originalUrl.toLowerCase().includes(q);
-    }
-    return true;
-  }), [links, filter, search]);
+      if (filter === "Active") return s === "ACTIVE";
+      if (filter === "Paused") return s === "PAUSED";
+      return true;
+    });
+  }, [links, filter, sortOrder]);
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(filtered.length / PER_PAGE)), [filtered.length]);
   const paginated = useMemo(() => filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE), [filtered, page]);
   const totalClicks = useMemo(() => links.reduce((s, l) => s + (l._count?.clicks ?? 0), 0), [links]);
   const activeCount = useMemo(() => links.filter(l => getStatus(l) === "ACTIVE").length, [links]);
-  const recentSlugs = useMemo(() => links.slice(0, 3).map(l => l.slug), [links]);
-
+  const avatarLinks = useMemo(() => links.slice(0, 4), [links]);
 
   const handleDelete = useCallback(async (id: string) => {
     const snapshot = links;
@@ -83,7 +109,6 @@ export default function DashboardClient({ user }: { user: User }) {
     try {
       const res = await fetch(`/api/links/${id}`, { method: "DELETE" });
       if (!res.ok) setLinks(snapshot);
-      else setLinksCache(links.filter(l => l.id !== id));
     } catch {
       setLinks(snapshot);
     }
@@ -106,29 +131,7 @@ export default function DashboardClient({ user }: { user: User }) {
     setEditingLink(null);
   }, []);
 
-  const handleBulkDelete = useCallback(async () => {
-    if (selected.size === 0) return;
-    setBulkDeleting(true);
-    const ids = Array.from(selected);
-    await Promise.all(ids.map(id => fetch(`/api/links/${id}`, { method: "DELETE" })));
-    setLinks(prev => {
-      const next = prev.filter(l => !ids.includes(l.id));
-      setLinksCache(next);
-      return next;
-    });
-    setSelected(new Set());
-    setBulkDeleting(false);
-  }, [selected]);
-
-  const toggleSelect = (id: string) => {
-    setSelected(prev => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  };
-
-  const handleCopySlug = (slug: string) => {
+  const handleCopy = (slug: string) => {
     navigator.clipboard.writeText(`${window.location.origin}/${slug}`).catch(() => {});
     setCopied(slug);
     setTimeout(() => setCopied(null), 2000);
@@ -136,16 +139,16 @@ export default function DashboardClient({ user }: { user: User }) {
 
   return (
     <>
-      <div className="p-4 md:p-8 max-w-[1100px]">
+      <div className="p-8 max-w-[1100px]">
         {/* Header */}
-        <div className="flex flex-wrap items-start md:items-end justify-between gap-4 mb-8">
+        <div className="flex items-end justify-between mb-8">
           <div>
-            <h1 className="text-[#f9f5f8] font-black text-4xl md:text-5xl tracking-[-2.4px] leading-tight">Overview</h1>
-            <p className="text-[#adaaad] text-base mt-1">Manage your links and monitor reach.</p>
+            <h1 className="text-[#f9f5f8] font-black text-5xl tracking-[-2.4px] leading-tight">Overview</h1>
+            <p className="text-[#adaaad] text-base mt-1">Manage your digital architecture and monitor reach.</p>
           </div>
           <button
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 px-6 md:px-8 py-3 md:py-3.5 rounded-lg font-bold text-sm md:text-base text-black shadow-[0_20px_40px_0_rgba(189,157,255,0.2)] transition-opacity hover:opacity-90 shrink-0"
+            className="flex items-center gap-2 px-8 py-3.5 rounded-lg font-bold text-base text-black shadow-[0_20px_40px_0_rgba(189,157,255,0.2)] transition-opacity hover:opacity-90"
             style={{ backgroundImage: "linear-gradient(133deg, rgb(189,157,255) 0%, rgb(138,76,252) 100%)" }}
           >
             <span className="text-lg leading-none">+</span>
@@ -153,9 +156,10 @@ export default function DashboardClient({ user }: { user: User }) {
           </button>
         </div>
 
-        {/* Stats Bento */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-8">
-          <div className="col-span-1 md:col-span-2 bg-[#131315] rounded-lg border border-[rgba(72,71,74,0.05)] p-6 md:p-8 relative overflow-hidden">
+        {/* Stats Bento Grid */}
+        <div className="grid grid-cols-3 gap-6 mb-8">
+          {/* Total Engagement — spans 2 cols */}
+          <div className="col-span-2 bg-[#131315] rounded-lg border border-[rgba(72,71,74,0.05)] p-8 relative overflow-hidden">
             <div className="absolute bottom-[-39px] right-[-39px] w-64 h-64 bg-[rgba(189,157,255,0.05)] blur-[32px] rounded-xl pointer-events-none" />
             <p className="text-[rgba(173,170,173,0.8)] text-xs font-bold tracking-[1.2px] uppercase mb-4">Total Engagement</p>
             <div className="text-[#bd9dff] font-black text-7xl tracking-[-3.6px] leading-none mb-4">
@@ -168,24 +172,46 @@ export default function DashboardClient({ user }: { user: User }) {
               <span className="text-[#ff8eac] font-bold text-base">Total clicks across all links</span>
             </div>
           </div>
-          <div className="bg-[#19191c] rounded-lg border border-[rgba(72,71,74,0.05)] p-6 md:p-8">
+
+          {/* Active Links */}
+          <div className="bg-[#19191c] rounded-lg border border-[rgba(72,71,74,0.05)] p-8">
             <p className="text-[rgba(173,170,173,0.8)] text-xs font-bold tracking-[1.2px] uppercase mb-2">Active Links</p>
             <div className="text-[#f9f5f8] font-black text-4xl tracking-[-1.8px] leading-tight mb-6">
               {loading ? "—" : activeCount}
             </div>
-            <div className="flex flex-wrap gap-2">
-              {recentSlugs.map((slug) => (
-                <span
-                  key={slug}
-                  className="px-2.5 py-1 rounded-lg bg-[#2c2c2f] text-[#adaaad] text-xs font-mono font-medium truncate max-w-[100px]"
-                >
-                  /{slug}
-                </span>
-              ))}
-              {links.length > 3 && (
-                <span className="px-2.5 py-1 rounded-lg bg-[#2c2c2f] text-[#adaaad] text-xs font-medium">
-                  +{links.length - 3} more
-                </span>
+            {/* Avatar stack */}
+            <div className="flex items-center">
+              {avatarLinks.length > 0 ? (
+                <>
+                  {avatarLinks.map((l, i) => {
+                    const color = AVATAR_COLORS[i % AVATAR_COLORS.length];
+                    return (
+                      <div
+                        key={l.id}
+                        className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs border-2 border-[#19191c] shrink-0"
+                        style={{
+                          backgroundColor: color.bg,
+                          color: color.text,
+                          marginLeft: i === 0 ? 0 : "-8px",
+                          zIndex: avatarLinks.length - i,
+                          position: "relative",
+                        }}
+                      >
+                        {getInitials(l.slug)}
+                      </div>
+                    );
+                  })}
+                  {links.length > 4 && (
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs border-2 border-[#19191c] bg-[#2c2c2f] text-[#f9f5f8] shrink-0"
+                      style={{ marginLeft: "-8px", position: "relative", zIndex: 0 }}
+                    >
+                      +{links.length - 4}
+                    </div>
+                  )}
+                </>
+              ) : !loading && (
+                <span className="text-[rgba(173,170,173,0.4)] text-xs">No links yet</span>
               )}
             </div>
           </div>
@@ -193,49 +219,38 @@ export default function DashboardClient({ user }: { user: User }) {
 
         {/* Recent Links */}
         <div>
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-            <div className="flex items-center gap-4 flex-wrap">
+          {/* List header */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-6">
               <h2 className="text-[#f9f5f8] font-bold text-xl">Recent Links</h2>
               <div className="flex items-center gap-2">
-                {(["All", "Active", "Expired"] as const).map((f) => (
-                  <button key={f} onClick={() => { setFilter(f); setPage(1); }}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-colors ${filter === f ? "bg-[#19191c] text-[#bd9dff] border border-[rgba(189,157,255,0.2)]" : "text-[#adaaad] hover:text-[#f9f5f8]"}`}>
+                {(["All", "Active", "Paused"] as const).map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => { setFilter(f); setPage(1); }}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-colors ${
+                      filter === f
+                        ? "bg-[#19191c] text-[#bd9dff] border border-[rgba(189,157,255,0.2)]"
+                        : "text-[#adaaad] hover:text-[#f9f5f8]"
+                    }`}
+                  >
                     {f}
                   </button>
                 ))}
               </div>
             </div>
-            {/* Search */}
-            <div className="relative">
-              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#adaaad]" />
-              <input
-                type="text"
-                placeholder="Search slug or URL..."
-                value={search}
-                onChange={e => { setSearch(e.target.value); setPage(1); }}
-                className="bg-[#19191c] border border-[rgba(72,71,74,0.15)] rounded-lg pl-8 pr-3 py-2 text-[#f9f5f8] text-xs outline-none focus:border-[rgba(189,157,255,0.3)] transition-colors w-52 placeholder-[rgba(173,170,173,0.4)]"
-              />
-            </div>
+            <button 
+              onClick={() => setSortOrder(o => o === "Newest" ? "Oldest" : "Newest")} 
+              className="flex items-center gap-2 text-[#adaaad] text-sm font-medium hover:text-[#f9f5f8] transition-colors"
+            >
+              <svg width="10.5" height="7" viewBox="0 0 10.5 7" fill="none" style={{ transform: sortOrder === "Oldest" ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>
+                <path d="M4.08333 7V5.83333H6.41667V7H4.08333M1.75 4.08333V2.91667H8.75V4.08333H1.75M0 1.16667V0H10.5V1.16667H0" fill="currentColor"/>
+              </svg>
+              Sort by Date: {sortOrder}
+            </button>
           </div>
 
-          {/* Bulk action bar */}
-          {selected.size > 0 && (
-            <div className="flex items-center justify-between bg-[rgba(189,157,255,0.06)] border border-[rgba(189,157,255,0.15)] rounded-lg px-4 py-2.5 mb-3">
-              <span className="text-[#bd9dff] text-sm font-bold">{selected.size} selected</span>
-              <div className="flex items-center gap-3">
-                <button onClick={() => setSelected(new Set())} className="text-[#adaaad] text-xs hover:text-[#f9f5f8] transition-colors">Deselect all</button>
-                <button
-                  onClick={handleBulkDelete}
-                  disabled={bulkDeleting}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[rgba(255,96,96,0.1)] text-[#ff6060] rounded-lg text-xs font-bold hover:bg-[rgba(255,96,96,0.2)] transition-colors disabled:opacity-50"
-                >
-                  <Trash2 size={12} />
-                  {bulkDeleting ? "Deleting..." : `Delete ${selected.size}`}
-                </button>
-              </div>
-            </div>
-          )}
-
+          {/* Links list */}
           <div className="flex flex-col gap-3">
             {loading ? (
               Array.from({ length: 3 }).map((_, i) => (
@@ -249,57 +264,90 @@ export default function DashboardClient({ user }: { user: User }) {
               ))
             ) : paginated.length === 0 ? (
               <div className="bg-[#19191c] border border-[rgba(72,71,74,0.1)] rounded-lg px-6 py-12 text-center text-[#adaaad] text-sm">
-                Chưa có link nào. Nhấn "Create New Link" để bắt đầu.
+                No links yet. Click &quot;Create New Link&quot; to get started.
               </div>
             ) : (
-              paginated.map((link) => {
-                const status = getStatus(link);
-                const shortUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/${link.slug}`;
-                const isSelected = selected.has(link.id);
-                return (
-                  <div
-                    key={link.id}
-                    className={`bg-[#19191c] border rounded-lg px-4 py-4 flex items-center gap-3 transition-all duration-150 ${isSelected ? "border-[rgba(189,157,255,0.3)] bg-[rgba(189,157,255,0.04)]" : "border-[rgba(72,71,74,0.1)] hover:border-[rgba(189,157,255,0.15)]"}`}
-                  >
-                    {/* Checkbox */}
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => toggleSelect(link.id)}
-                      className="w-4 h-4 rounded accent-[#bd9dff] shrink-0"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        {/* Click slug to copy */}
-                        <button
-                          onClick={() => handleCopySlug(link.slug)}
-                          className="text-[#f9f5f8] font-bold text-sm truncate hover:text-[#bd9dff] transition-colors flex items-center gap-1 group"
-                          title="Click to copy short URL"
-                        >
-                          /{link.slug}
-                          {copied === link.slug
-                            ? <Check size={11} className="text-[#bd9dff] shrink-0" />
-                            : <Copy size={11} className="opacity-0 group-hover:opacity-60 shrink-0 transition-opacity" />}
-                        </button>
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold tracking-[0.5px] shrink-0 ${STATUS_STYLES[status]}`}>{status}</span>
+              <>
+                {paginated.map((link) => {
+                  const status = getStatus(link);
+                  const shortUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/${link.slug}`;
+                  return (
+                    <Link
+                      key={link.id}
+                      href="/dashboard/analytics"
+                      className="bg-[#19191c] border border-[rgba(72,71,74,0.1)] rounded-lg px-6 py-5 flex items-center gap-4 hover:border-[rgba(189,157,255,0.15)] transition-colors"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-3 mb-1">
+                          <span className="text-[#f9f5f8] font-bold text-base truncate">{link.slug}</span>
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold tracking-[0.5px] shrink-0 ${STATUS_STYLES[status]}`}>
+                            {status}
+                          </span>
+                        </div>
+                        <div className="text-[#bd9dff] text-sm mb-0.5 truncate">{shortUrl}</div>
+                        <div className="text-[rgba(173,170,173,0.4)] text-xs truncate">Target: {link.originalUrl}</div>
                       </div>
-                      <div className="text-[rgba(173,170,173,0.4)] text-xs truncate">→ {link.originalUrl}</div>
-                    </div>
-                    <div className="text-right shrink-0 hidden sm:block">
-                      <div className="text-[rgba(173,170,173,0.5)] text-[9px] font-bold tracking-[1px] uppercase">Clicks</div>
-                      <div className="text-[#f9f5f8] font-bold text-base">{formatClicks(link._count?.clicks ?? 0)}</div>
-                    </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <button onClick={() => setEditingLink(link)} className="text-[#adaaad] hover:text-[#bd9dff] transition-colors p-1.5 rounded-lg hover:bg-[rgba(189,157,255,0.08)]" title="Edit">
-                        <Pencil size={13} />
-                      </button>
-                      <button onClick={() => handleDelete(link.id)} className="text-[#adaaad] hover:text-[#ff6060] transition-colors p-1.5 rounded-lg hover:bg-[rgba(255,96,96,0.08)]" title="Delete">
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
+                      <div className="flex gap-8 items-center shrink-0">
+                        <div className="text-right">
+                          <div className="text-[rgba(173,170,173,0.6)] text-[10px] font-bold tracking-[1px] uppercase mb-0.5">Clicks</div>
+                          <div className="text-[#f9f5f8] font-bold text-lg">{formatClicks(link._count?.clicks ?? 0)}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-[rgba(173,170,173,0.6)] text-[10px] font-bold tracking-[1px] uppercase mb-0.5">CTR</div>
+                          <div className="text-[#f9f5f8] font-bold text-lg">—</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0 ml-2">
+                        <button
+                          onClick={(e) => { e.preventDefault(); handleCopy(link.slug); }}
+                          className="text-[#adaaad] hover:text-[#f9f5f8] transition-colors p-1"
+                          title="Copy"
+                        >
+                          {copied === link.slug ? <Check size={16} className="text-[#bd9dff]" /> : <Copy size={16} />}
+                        </button>
+                        <button
+                          onClick={(e) => { e.preventDefault(); setEditingLink(link); }}
+                          className="text-[#adaaad] hover:text-[#bd9dff] transition-colors p-1"
+                          title="Edit"
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                        <button
+                          onClick={(e) => { e.preventDefault(); setQrModalSlug(link.slug); }}
+                          className="text-[#adaaad] hover:text-[#f9f5f8] transition-colors p-1"
+                          title="QR Code"
+                        >
+                          <QrCode size={16} />
+                        </button>
+                        <button
+                          onClick={(e) => { e.preventDefault(); handleDelete(link.id); }}
+                          className="text-[#adaaad] hover:text-[#ff6060] transition-colors p-1"
+                          title="Delete"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </Link>
+                  );
+                })}
+
+                {/* Skeleton row at bottom */}
+                <div className="bg-[#19191c] border border-[rgba(72,71,74,0.1)] rounded-lg px-6 py-5 flex items-center gap-4 opacity-40">
+                  <div className="flex-1">
+                    <div className="h-4 bg-[#2c2c2f] rounded w-48 mb-2" />
+                    <div className="h-3 bg-[#2c2c2f] rounded w-72" />
                   </div>
-                );
-              })
+                  <div className="flex gap-4">
+                    <div className="h-8 bg-[#2c2c2f] rounded w-12" />
+                    <div className="h-8 bg-[#2c2c2f] rounded w-12" />
+                  </div>
+                  <div className="flex gap-2">
+                    <div className="h-7 bg-[#2c2c2f] rounded w-7" />
+                    <div className="h-7 bg-[#2c2c2f] rounded w-7" />
+                    <div className="h-7 bg-[#2c2c2f] rounded w-7" />
+                  </div>
+                </div>
+              </>
             )}
           </div>
 
@@ -332,6 +380,17 @@ export default function DashboardClient({ user }: { user: User }) {
                     </button>
                   );
                 })}
+                {totalPages > 5 && (
+                  <>
+                    <span className="text-[#adaaad] text-sm px-1">...</span>
+                    <button
+                      onClick={() => setPage(totalPages)}
+                      className="w-8 h-8 rounded-lg text-sm font-medium text-[#adaaad] hover:text-[#f9f5f8] transition-colors"
+                    >
+                      {totalPages}
+                    </button>
+                  </>
+                )}
                 <button
                   onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
@@ -350,6 +409,28 @@ export default function DashboardClient({ user }: { user: User }) {
       )}
       {editingLink && (
         <EditLinkModal link={editingLink} onClose={() => setEditingLink(null)} onUpdated={handleUpdated} />
+      )}
+
+      {qrModalSlug && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setQrModalSlug(null)}>
+          <div className="relative bg-[#19191c] p-8 rounded-3xl border border-[rgba(72,71,74,0.2)] flex flex-col items-center shadow-[0_40px_80px_0_rgba(189,157,255,0.12)]" onClick={e => e.stopPropagation()}>
+            <h3 className="text-[#f9f5f8] font-black text-2xl tracking-tight mb-2">QR Code</h3>
+            <p className="text-[#adaaad] text-xs mb-6 font-medium">/{qrModalSlug}</p>
+            {qrDataUrl ? (
+              <img src={qrDataUrl} alt="QR code" className="w-48 h-48 rounded-2xl border border-[rgba(189,157,255,0.2)] mb-6" />
+            ) : (
+              <div className="w-48 h-48 rounded-2xl border border-[rgba(72,71,74,0.2)] bg-[#131315] flex items-center justify-center mb-6">
+                 <div className="w-6 h-6 border-2 border-[#bd9dff] border-t-transparent rounded-full animate-spin" />
+              </div>
+            )}
+            <button
+              onClick={() => setQrModalSlug(null)}
+              className="px-8 py-2.5 rounded-xl font-bold text-sm bg-[#2c2c2f] hover:bg-[#3c3c40] text-[#f9f5f8] transition-colors w-full"
+            >
+              Done
+            </button>
+          </div>
+        </div>
       )}
     </>
   );

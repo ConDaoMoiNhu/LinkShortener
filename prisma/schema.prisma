@@ -19,6 +19,7 @@ model User {
   sessions       Session[]
   links          Link[]
   createdAt      DateTime  @default(now())
+  apiKey         String?   @unique
 }
 
 model Account {
@@ -67,6 +68,7 @@ model Link {
   expiresAt   DateTime?
 
   @@index([userId])
+  @@index([createdAt])
 }
 
 model Click {
@@ -80,4 +82,5 @@ model Click {
 
   @@index([linkId])
   @@index([linkId, createdAt])
+  @@index([createdAt])
 }
