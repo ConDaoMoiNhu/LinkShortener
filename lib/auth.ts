@@ -23,20 +23,6 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: "/login",
   },
-  cookies: {
-    sessionToken: {
-      name: process.env.NEXTAUTH_URL?.startsWith("https://")
-        ? "__Secure-next-auth.session-token"
-        : "next-auth.session-token",
-      options: {
-        httpOnly: true,
-        sameSite: "lax" as const,
-        path: "/",
-        secure: process.env.NEXTAUTH_URL?.startsWith("https://") ?? false,
-        maxAge: 30 * 24 * 60 * 60, // 30 days — makes cookie persistent, not session-only
-      },
-    },
-  },
   callbacks: {
     jwt({ token, user }) {
       if (user) {
