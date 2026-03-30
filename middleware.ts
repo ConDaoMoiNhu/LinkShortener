@@ -12,17 +12,18 @@ export function isSlugPath(pathname: string): boolean {
 
 export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  
+  // Robustly check for NextAuth session cookies (works across HTTP/HTTPS)
+  const hasSession = request.cookies.has("next-auth.session-token") || 
+                     request.cookies.has("__Secure-next-auth.session-token");
 
-  // Auth protection for dashboard (skip in dev)
+  // UX Feature: Auto-redirect logged-in users from landing page to dashboard
+  if (pathname === "/" && hasSession) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
+  // Auth protection for dashboard (skip in absolute local dev mode)
   if (pathname.startsWith("/dashboard") && process.env.NODE_ENV !== "development") {
-    // Check cookie existence — Edge Runtime can't reliably verify JWT crypto.
-    // Real auth verification happens in API routes (Node.js runtime).
-    const secureCookie = process.env.NEXTAUTH_URL?.startsWith("https://") ?? false;
-    const cookieName = secureCookie
-      ? "__Secure-next-auth.session-token"
-      : "next-auth.session-token";
-    const allCookies = request.cookies.getAll();
-    const hasSession = allCookies.some((c) => c.name.startsWith(cookieName));
     if (!hasSession) {
       const loginUrl = request.nextUrl.clone();
       loginUrl.pathname = "/login";
