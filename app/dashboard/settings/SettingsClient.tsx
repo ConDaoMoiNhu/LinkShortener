@@ -100,7 +100,7 @@ export default function SettingsClient({ user, apiKey }: { user: User; apiKey: s
                 disabled={saving}
                 className="text-[#bd9dff] font-bold text-sm hover:text-[#d4baff] transition-colors disabled:opacity-50"
               >
-                {saving ? "Saving..." : saved ? "Saved ✓" : "Edit Profile"}
+                {saving ? "Saving..." : saved ? "Saved ✓" : "Save Changes"}
               </button>
             </div>
 

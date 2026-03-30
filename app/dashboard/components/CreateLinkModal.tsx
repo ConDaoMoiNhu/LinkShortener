@@ -41,8 +41,14 @@ export default function CreateLinkModal({ onClose, onCreated }: Props) {
         }),
       });
       if (!res.ok) {
-        const data = await res.json();
-        setError(data.error ?? "Failed to create link");
+        let errStr = "Failed to create link";
+        try {
+          const data = await res.json();
+          errStr = typeof data.error === "string" ? data.error : JSON.stringify(data.error);
+        } catch {
+          errStr = `Server Error: ${res.status} ${res.statusText}`;
+        }
+        setError(errStr);
       } else {
         const data = await res.json();
         const shortUrl = `${window.location.origin}/${data.slug}`;
@@ -53,8 +59,8 @@ export default function CreateLinkModal({ onClose, onCreated }: Props) {
           .then(d => setQrDataUrl(d.qr ?? null))
           .catch(() => {});
       }
-    } catch {
-      setError("Network error");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Network/CORS error");
     } finally {
       setLoading(false);
     }
