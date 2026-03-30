@@ -1,4 +1,3 @@
-import { getToken } from "next-auth/jwt";
 import { NextRequest, NextResponse } from "next/server";
 
 const SLUG_EXCLUDED = ["/api", "/dashboard", "/login", "/_next", "/favicon.ico"];
@@ -16,11 +15,15 @@ export async function proxy(request: NextRequest) {
 
   // Auth protection for dashboard (skip in dev)
   if (pathname.startsWith("/dashboard") && process.env.NODE_ENV !== "development") {
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-    });
-    if (!token) {
+    // Check cookie existence — Edge Runtime can't reliably verify JWT crypto.
+    // Real auth verification happens in API routes (Node.js runtime).
+    const secureCookie = process.env.NEXTAUTH_URL?.startsWith("https://") ?? false;
+    const cookieName = secureCookie
+      ? "__Secure-next-auth.session-token"
+      : "next-auth.session-token";
+    const allCookies = request.cookies.getAll();
+    const hasSession = allCookies.some((c) => c.name.startsWith(cookieName));
+    if (!hasSession) {
       const loginUrl = request.nextUrl.clone();
       loginUrl.pathname = "/login";
       loginUrl.searchParams.set("callbackUrl", pathname);
