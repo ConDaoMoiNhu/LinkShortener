@@ -19,5 +19,5 @@ export default async function SettingsPage() {
   await headers();
   const session = await getServerSession(authOptions);
   const apiKey = generateApiKey(session?.user?.id ?? session?.user?.email ?? "unknown");
-  return <SettingsClient user={session!.user} apiKey={apiKey} />;
+  return <SettingsClient user={session?.user ?? {}} apiKey={apiKey} />;
 }

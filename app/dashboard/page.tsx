@@ -11,5 +11,5 @@ export default async function DashboardPage() {
   }
   await headers();
   const session = await getServerSession(authOptions);
-  return <DashboardClient user={session!.user} />;
+  return <DashboardClient user={session?.user ?? {}} />;
 }
