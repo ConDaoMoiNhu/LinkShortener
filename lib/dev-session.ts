@@ -1,5 +1,6 @@
 import { getToken } from "next-auth/jwt";
 import { NextRequest } from "next/server";
+import { headers, cookies } from "next/headers";
 
 const DEV_USER_ID = "dev-user-local";
 
