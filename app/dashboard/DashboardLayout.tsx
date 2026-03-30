@@ -266,7 +266,9 @@ export default function DashboardLayout({
         className="dashboard-main pb-24 md:pb-8"
         style={{ paddingTop: "64px" }}
       >
-        {children}
+        <div key={pathname} className="fade-up">
+          {children}
+        </div>
       </main>
 
       {/* ── Mobile bottom nav ── */}
