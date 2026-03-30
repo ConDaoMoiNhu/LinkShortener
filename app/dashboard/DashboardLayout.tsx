@@ -13,14 +13,14 @@ interface User {
 }
 
 const S = {
-  surface: "#0e0e10",
-  surfaceLow: "#131315",
-  surfaceContainer: "#19191c",
-  surfaceHigh: "#1f1f22",
-  surfaceBright: "#2c2c2f",
-  onSurface: "#f9f5f8",
-  onSurfaceVariant: "#adaaad",
-  primary: "#bd9dff",
+  surface: "var(--surface)",
+  surfaceLow: "var(--surface-low)",
+  surfaceContainer: "var(--surface-container)",
+  surfaceHigh: "var(--surface-high)",
+  surfaceBright: "var(--surface-bright)",
+  onSurface: "var(--on-surface)",
+  onSurfaceVariant: "var(--on-surface-variant)",
+  primary: "var(--primary)",
 };
 
 const navItems = [
@@ -97,7 +97,7 @@ function DashboardLayoutInner({
         position: "fixed", top: 0, left: 0, right: 0, zIndex: 50,
         height: "64px", display: "flex", alignItems: "center",
         justifyContent: "space-between", padding: "0 24px",
-        background: "rgba(14,14,16,0.85)", backdropFilter: "blur(20px)",
+        background: "var(--header-bg)", backdropFilter: "blur(20px)",
         WebkitBackdropFilter: "blur(20px)",
         boxShadow: "0 1px 0 rgba(72,71,74,0.1), 0 20px 40px rgba(189,157,255,0.06)",
       }}>
@@ -212,7 +212,7 @@ function DashboardLayoutInner({
                 }}
                 onMouseEnter={e => {
                   if (!active) {
-                    e.currentTarget.style.background = "rgba(25,25,28,0.6)";
+                    e.currentTarget.style.background = "var(--hover-row)";
                     e.currentTarget.style.color = S.onSurface;
                   }
                 }}
@@ -243,7 +243,7 @@ function DashboardLayoutInner({
               transition: "all 0.2s",
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.background = "rgba(25,25,28,0.6)";
+              e.currentTarget.style.background = "var(--hover-row)";
               e.currentTarget.style.color = S.onSurface;
             }}
             onMouseLeave={e => {
@@ -295,12 +295,12 @@ function DashboardLayoutInner({
 
       {/* ── Mobile bottom nav ── */}
       <nav
-        className="flex md:hidden"
+        className="flex md:hidden light-nav-bottom"
         style={{
           position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50,
           alignItems: "center", justifyContent: "space-around",
           padding: "10px 8px 20px",
-          background: "rgba(14,14,16,0.96)", backdropFilter: "blur(20px)",
+          background: "var(--bottom-nav-bg)", backdropFilter: "blur(20px)",
           WebkitBackdropFilter: "blur(20px)",
           borderTop: "1px solid rgba(72,71,74,0.12)",
         }}

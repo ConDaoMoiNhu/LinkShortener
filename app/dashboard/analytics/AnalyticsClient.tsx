@@ -223,9 +223,9 @@ export default function AnalyticsClient() {
                 style={{
                   display: "flex", alignItems: "center", gap: "10px",
                   padding: "10px 14px", borderRadius: "12px",
-                  background: "#19191c",
-                  border: `1px solid ${dropdownOpen ? "rgba(189,157,255,0.4)" : "rgba(72,71,74,0.25)"}`,
-                  color: "#f9f5f8", fontSize: "13px", fontWeight: 700,
+                  background: "var(--surface-container)",
+                  border: `1px solid ${dropdownOpen ? "rgba(189,157,255,0.4)" : "var(--outline-variant)"}`,
+                  color: "var(--on-surface)", fontSize: "13px", fontWeight: 700,
                   cursor: "pointer", transition: "border-color 0.2s",
                   fontFamily: "inherit", whiteSpace: "nowrap",
                   boxShadow: dropdownOpen ? "0 0 0 3px rgba(189,157,255,0.08)" : "none",
@@ -233,11 +233,11 @@ export default function AnalyticsClient() {
                 }}
               >
                 <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                  <span style={{ color: "rgba(189,157,255,0.7)", fontWeight: 400 }}>/</span>
+                  <span style={{ color: "var(--primary)", opacity: 0.7, fontWeight: 400 }}>/</span>
                   <span>{selected?.slug ?? "Select link"}</span>
                 </span>
                 <span style={{
-                  color: "#adaaad", fontSize: "11px",
+                  color: "var(--on-surface-variant)", fontSize: "11px",
                   transform: dropdownOpen ? "rotate(180deg)" : "rotate(0deg)",
                   transition: "transform 0.2s",
                   display: "inline-block",
@@ -249,10 +249,10 @@ export default function AnalyticsClient() {
                 <div style={{
                   position: "absolute", top: "calc(100% + 6px)", right: 0,
                   minWidth: "100%", zIndex: 100,
-                  background: "#19191c",
-                  border: "1px solid rgba(72,71,74,0.3)",
+                  background: "var(--surface-container)",
+                  border: "1px solid var(--outline-variant)",
                   borderRadius: "14px",
-                  boxShadow: "0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04)",
+                  boxShadow: "0 8px 32px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.04)",
                   overflow: "hidden",
                   animation: "scaleIn 0.15s cubic-bezier(0.16,1,0.3,1) both",
                 }}>
@@ -267,27 +267,28 @@ export default function AnalyticsClient() {
                           width: "100%", padding: "10px 14px",
                           background: isActive ? "rgba(189,157,255,0.08)" : "transparent",
                           border: "none",
-                          borderBottom: i < links.length - 1 ? "1px solid rgba(72,71,74,0.1)" : "none",
-                          color: isActive ? "#bd9dff" : "#f9f5f8",
+                          borderBottom: i < links.length - 1 ? "1px solid var(--outline-variant)" : "none",
+                          color: isActive ? "var(--primary)" : "var(--on-surface)",
                           fontSize: "13px", fontWeight: isActive ? 700 : 500,
                           cursor: "pointer", textAlign: "left",
                           fontFamily: "inherit", gap: "16px",
                           transition: "background 0.15s",
                         }}
                         onMouseEnter={e => {
-                          if (!isActive) e.currentTarget.style.background = "rgba(255,255,255,0.04)";
+                          if (!isActive) e.currentTarget.style.background = "var(--surface-high)";
                         }}
                         onMouseLeave={e => {
                           if (!isActive) e.currentTarget.style.background = "transparent";
                         }}
                       >
                         <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                          <span style={{ color: isActive ? "rgba(189,157,255,0.6)" : "rgba(249,245,248,0.3)", fontWeight: 400 }}>/</span>
+                          <span style={{ color: isActive ? "var(--primary)" : "var(--on-surface-variant)", opacity: isActive ? 0.7 : 0.5, fontWeight: 400 }}>/</span>
                           {l.slug}
                         </span>
                         <span style={{
                           fontSize: "11px", fontWeight: 600,
-                          color: isActive ? "rgba(189,157,255,0.7)" : "rgba(173,170,173,0.5)",
+                          color: isActive ? "var(--primary)" : "var(--on-surface-variant)",
+                          opacity: 0.7,
                           whiteSpace: "nowrap",
                         }}>
                           {l._count?.clicks ?? 0} clicks
