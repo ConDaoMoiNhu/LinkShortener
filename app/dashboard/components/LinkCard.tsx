@@ -1,6 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
+import type { CachedLink } from "@/lib/links-cache";
+
+const EditLinkModal = dynamic(() => import("./EditLinkModal"), { ssr: false });
 
 interface LinkItem {
   id: string;
@@ -15,6 +19,7 @@ interface Props {
   link: LinkItem;
   baseUrl: string;
   onDeleted: () => void;
+  onUpdated?: (updated: LinkItem) => void;
 }
 
 function StatusBadge({ expiresAt }: { expiresAt?: string | null }) {
@@ -77,9 +82,10 @@ function StatusBadge({ expiresAt }: { expiresAt?: string | null }) {
   );
 }
 
-export default function LinkCard({ link, baseUrl, onDeleted }: Props) {
+export default function LinkCard({ link, baseUrl, onDeleted, onUpdated }: Props) {
   const [copied, setCopied] = useState(false);
   const [hovered, setHovered] = useState(false);
+  const [editLink, setEditLink] = useState<LinkItem | null>(null);
 
   const shortUrl = `${baseUrl}/${link.slug}`;
   const domain = baseUrl.replace(/^https?:\/\//, "");
@@ -168,51 +174,33 @@ export default function LinkCard({ link, baseUrl, onDeleted }: Props) {
 
       {/* Actions */}
       <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
-        <button
-          onClick={handleCopy}
-          title="Copy link"
-          style={{
-            width: "36px", height: "36px", borderRadius: "10px",
-            background: "#1f1f22", border: "none", cursor: "pointer",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            color: copied ? "#bd9dff" : "rgba(173,170,173,0.6)",
-            transition: "all 0.2s", fontSize: "15px",
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.background = "#2c2c2f";
-            e.currentTarget.style.color = "#bd9dff";
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.background = "#1f1f22";
-            e.currentTarget.style.color = copied ? "#bd9dff" : "rgba(173,170,173,0.6)";
-          }}
-        >
+        <button onClick={handleCopy} title="Copy link" style={{ width: "36px", height: "36px", borderRadius: "10px", background: "#1f1f22", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: copied ? "#bd9dff" : "rgba(173,170,173,0.6)", transition: "all 0.2s", fontSize: "15px" }}
+          onMouseEnter={e => { e.currentTarget.style.background = "#2c2c2f"; e.currentTarget.style.color = "#bd9dff"; }}
+          onMouseLeave={e => { e.currentTarget.style.background = "#1f1f22"; e.currentTarget.style.color = copied ? "#bd9dff" : "rgba(173,170,173,0.6)"; }}>
           {copied ? "✓" : "⎘"}
         </button>
-
-        <button
-          onClick={handleDelete}
-          title="Xoá link"
-          style={{
-            width: "36px", height: "36px", borderRadius: "10px",
-            background: "#1f1f22", border: "none", cursor: "pointer",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            color: "rgba(173,170,173,0.6)",
-            transition: "all 0.2s", fontSize: "14px",
-            opacity: hovered ? 1 : 0,
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.background = "rgba(167,1,56,0.15)";
-            e.currentTarget.style.color = "#ff6e84";
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.background = "#1f1f22";
-            e.currentTarget.style.color = "rgba(173,170,173,0.6)";
-          }}
-        >
+        <button onClick={() => setEditLink(link)} title="Edit link" style={{ width: "36px", height: "36px", borderRadius: "10px", background: "#1f1f22", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(173,170,173,0.6)", transition: "all 0.2s", fontSize: "14px", opacity: hovered ? 1 : 0 }}
+          onMouseEnter={e => { e.currentTarget.style.background = "rgba(189,157,255,0.1)"; e.currentTarget.style.color = "#bd9dff"; }}
+          onMouseLeave={e => { e.currentTarget.style.background = "#1f1f22"; e.currentTarget.style.color = "rgba(173,170,173,0.6)"; }}>
+          ✎
+        </button>
+        <button onClick={handleDelete} title="Xoá link" style={{ width: "36px", height: "36px", borderRadius: "10px", background: "#1f1f22", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(173,170,173,0.6)", transition: "all 0.2s", fontSize: "14px", opacity: hovered ? 1 : 0 }}
+          onMouseEnter={e => { e.currentTarget.style.background = "rgba(167,1,56,0.15)"; e.currentTarget.style.color = "#ff6e84"; }}
+          onMouseLeave={e => { e.currentTarget.style.background = "#1f1f22"; e.currentTarget.style.color = "rgba(173,170,173,0.6)"; }}>
           ✕
         </button>
       </div>
+
+      {editLink && (
+        <EditLinkModal
+          link={editLink as unknown as CachedLink}
+          onClose={() => setEditLink(null)}
+          onUpdated={(updated) => {
+            setEditLink(null);
+            onUpdated?.({ ...link, originalUrl: updated.originalUrl, slug: updated.slug });
+          }}
+        />
+      )}
     </div>
   );
 }

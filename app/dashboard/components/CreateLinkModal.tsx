@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Copy, Check } from "lucide-react";
+import { X, Copy, Check, Download } from "lucide-react";
 import type { CachedLink } from "@/lib/links-cache";
 
 interface Props {
@@ -92,15 +92,36 @@ export default function CreateLinkModal({ onClose, onCreated }: Props) {
           {result ? (
             <div className="flex flex-col items-center gap-6 py-2">
               {qrDataUrl ? (
-                <img
-                  src={qrDataUrl}
-                  alt="QR code"
-                  className="w-40 h-40 rounded-2xl border border-[rgba(189,157,255,0.2)]"
-                />
+                <div className="relative group">
+                  <img
+                    src={qrDataUrl}
+                    alt="QR code"
+                    className="w-40 h-40 rounded-2xl border border-[rgba(189,157,255,0.2)]"
+                  />
+                  <a
+                    href={qrDataUrl}
+                    download={`qr-${result.slug}.png`}
+                    className="absolute inset-0 flex items-center justify-center rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity"
+                    style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
+                    title="Download QR PNG"
+                  >
+                    <Download size={28} className="text-white" />
+                  </a>
+                </div>
               ) : (
                 <div className="w-40 h-40 rounded-2xl border border-[rgba(72,71,74,0.2)] bg-[#19191c] flex items-center justify-center">
                   <div className="w-6 h-6 border-2 border-[#bd9dff] border-t-transparent rounded-full animate-spin" />
                 </div>
+              )}
+
+              {qrDataUrl && (
+                <a
+                  href={qrDataUrl}
+                  download={`qr-${result.slug}.png`}
+                  className="flex items-center gap-1.5 text-[#adaaad] hover:text-[#bd9dff] text-xs font-bold transition-colors -mt-3"
+                >
+                  <Download size={12} /> Download QR PNG
+                </a>
               )}
 
               <div className="w-full text-center">

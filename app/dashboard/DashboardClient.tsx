@@ -2,10 +2,11 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import dynamic from "next/dynamic";
-import { Copy, Trash2, ChevronLeft, ChevronRight, Check } from "lucide-react";
+import { Copy, Trash2, ChevronLeft, ChevronRight, Check, Search, Pencil } from "lucide-react";
 import { getLinksCache, setLinksCache, invalidateLinksCache, CachedLink } from "@/lib/links-cache";
 
 const CreateLinkModal = dynamic(() => import("./components/CreateLinkModal"), { ssr: false });
+const EditLinkModal = dynamic(() => import("./components/EditLinkModal"), { ssr: false });
 
 interface User {
   id?: string;
@@ -37,6 +38,10 @@ export default function DashboardClient({ user }: { user: User }) {
   const [page, setPage] = useState(1);
   const [showModal, setShowModal] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [editingLink, setEditingLink] = useState<CachedLink | null>(null);
   const PER_PAGE = 5;
 
   const fetchLinks = useCallback(async () => {
@@ -52,10 +57,17 @@ export default function DashboardClient({ user }: { user: User }) {
   useEffect(() => { fetchLinks(); }, [fetchLinks]);
 
   const filtered = useMemo(() => links.filter(l => {
-    if (filter === "All") return true;
-    const s = getStatus(l);
-    return filter === "Active" ? s === "ACTIVE" : s === "EXPIRED";
-  }), [links, filter]);
+    if (filter !== "All") {
+      const s = getStatus(l);
+      if (filter === "Active" && s !== "ACTIVE") return false;
+      if (filter === "Expired" && s !== "EXPIRED") return false;
+    }
+    if (search) {
+      const q = search.toLowerCase();
+      return l.slug.toLowerCase().includes(q) || l.originalUrl.toLowerCase().includes(q);
+    }
+    return true;
+  }), [links, filter, search]);
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(filtered.length / PER_PAGE)), [filtered.length]);
   const paginated = useMemo(() => filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE), [filtered, page]);
@@ -63,11 +75,6 @@ export default function DashboardClient({ user }: { user: User }) {
   const activeCount = useMemo(() => links.filter(l => getStatus(l) === "ACTIVE").length, [links]);
   const recentSlugs = useMemo(() => links.slice(0, 3).map(l => l.slug), [links]);
 
-  const handleCopy = (slug: string) => {
-    navigator.clipboard.writeText(`${window.location.origin}/${slug}`).catch(() => {});
-    setCopied(slug);
-    setTimeout(() => setCopied(null), 2000);
-  };
 
   const handleDelete = useCallback(async (id: string) => {
     const snapshot = links;
@@ -89,6 +96,43 @@ export default function DashboardClient({ user }: { user: User }) {
       return updated;
     });
   }, []);
+
+  const handleUpdated = useCallback((updated: CachedLink) => {
+    setLinks(prev => {
+      const next = prev.map(l => l.id === updated.id ? { ...l, ...updated } : l);
+      setLinksCache(next);
+      return next;
+    });
+    setEditingLink(null);
+  }, []);
+
+  const handleBulkDelete = useCallback(async () => {
+    if (selected.size === 0) return;
+    setBulkDeleting(true);
+    const ids = Array.from(selected);
+    await Promise.all(ids.map(id => fetch(`/api/links/${id}`, { method: "DELETE" })));
+    setLinks(prev => {
+      const next = prev.filter(l => !ids.includes(l.id));
+      setLinksCache(next);
+      return next;
+    });
+    setSelected(new Set());
+    setBulkDeleting(false);
+  }, [selected]);
+
+  const toggleSelect = (id: string) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const handleCopySlug = (slug: string) => {
+    navigator.clipboard.writeText(`${window.location.origin}/${slug}`).catch(() => {});
+    setCopied(slug);
+    setTimeout(() => setCopied(null), 2000);
+  };
 
   return (
     <>
@@ -149,26 +193,48 @@ export default function DashboardClient({ user }: { user: User }) {
 
         {/* Recent Links */}
         <div>
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-6">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-4 flex-wrap">
               <h2 className="text-[#f9f5f8] font-bold text-xl">Recent Links</h2>
               <div className="flex items-center gap-2">
                 {(["All", "Active", "Expired"] as const).map((f) => (
-                  <button
-                    key={f}
-                    onClick={() => { setFilter(f); setPage(1); }}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-colors ${
-                      filter === f
-                        ? "bg-[#19191c] text-[#bd9dff] border border-[rgba(189,157,255,0.2)]"
-                        : "text-[#adaaad] hover:text-[#f9f5f8]"
-                    }`}
-                  >
+                  <button key={f} onClick={() => { setFilter(f); setPage(1); }}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-colors ${filter === f ? "bg-[#19191c] text-[#bd9dff] border border-[rgba(189,157,255,0.2)]" : "text-[#adaaad] hover:text-[#f9f5f8]"}`}>
                     {f}
                   </button>
                 ))}
               </div>
             </div>
+            {/* Search */}
+            <div className="relative">
+              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#adaaad]" />
+              <input
+                type="text"
+                placeholder="Search slug or URL..."
+                value={search}
+                onChange={e => { setSearch(e.target.value); setPage(1); }}
+                className="bg-[#19191c] border border-[rgba(72,71,74,0.15)] rounded-lg pl-8 pr-3 py-2 text-[#f9f5f8] text-xs outline-none focus:border-[rgba(189,157,255,0.3)] transition-colors w-52 placeholder-[rgba(173,170,173,0.4)]"
+              />
+            </div>
           </div>
+
+          {/* Bulk action bar */}
+          {selected.size > 0 && (
+            <div className="flex items-center justify-between bg-[rgba(189,157,255,0.06)] border border-[rgba(189,157,255,0.15)] rounded-lg px-4 py-2.5 mb-3">
+              <span className="text-[#bd9dff] text-sm font-bold">{selected.size} selected</span>
+              <div className="flex items-center gap-3">
+                <button onClick={() => setSelected(new Set())} className="text-[#adaaad] text-xs hover:text-[#f9f5f8] transition-colors">Deselect all</button>
+                <button
+                  onClick={handleBulkDelete}
+                  disabled={bulkDeleting}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[rgba(255,96,96,0.1)] text-[#ff6060] rounded-lg text-xs font-bold hover:bg-[rgba(255,96,96,0.2)] transition-colors disabled:opacity-50"
+                >
+                  <Trash2 size={12} />
+                  {bulkDeleting ? "Deleting..." : `Delete ${selected.size}`}
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="flex flex-col gap-3">
             {loading ? (
@@ -189,41 +255,46 @@ export default function DashboardClient({ user }: { user: User }) {
               paginated.map((link) => {
                 const status = getStatus(link);
                 const shortUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/${link.slug}`;
+                const isSelected = selected.has(link.id);
                 return (
                   <div
                     key={link.id}
-                    className="bg-[#19191c] border border-[rgba(72,71,74,0.1)] rounded-lg px-6 py-5 flex items-center gap-4 hover:border-[rgba(189,157,255,0.15)] transition-colors"
+                    className={`bg-[#19191c] border rounded-lg px-4 py-4 flex items-center gap-3 transition-all duration-150 ${isSelected ? "border-[rgba(189,157,255,0.3)] bg-[rgba(189,157,255,0.04)]" : "border-[rgba(72,71,74,0.1)] hover:border-[rgba(189,157,255,0.15)]"}`}
                   >
+                    {/* Checkbox */}
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => toggleSelect(link.id)}
+                      className="w-4 h-4 rounded accent-[#bd9dff] shrink-0"
+                    />
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3 mb-1">
-                        <span className="text-[#f9f5f8] font-bold text-base truncate">/{link.slug}</span>
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold tracking-[0.5px] shrink-0 ${STATUS_STYLES[status]}`}>
-                          {status}
-                        </span>
+                      <div className="flex items-center gap-2 mb-0.5">
+                        {/* Click slug to copy */}
+                        <button
+                          onClick={() => handleCopySlug(link.slug)}
+                          className="text-[#f9f5f8] font-bold text-sm truncate hover:text-[#bd9dff] transition-colors flex items-center gap-1 group"
+                          title="Click to copy short URL"
+                        >
+                          /{link.slug}
+                          {copied === link.slug
+                            ? <Check size={11} className="text-[#bd9dff] shrink-0" />
+                            : <Copy size={11} className="opacity-0 group-hover:opacity-60 shrink-0 transition-opacity" />}
+                        </button>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold tracking-[0.5px] shrink-0 ${STATUS_STYLES[status]}`}>{status}</span>
                       </div>
-                      <div className="text-[#bd9dff] text-sm mb-0.5 truncate">{shortUrl}</div>
                       <div className="text-[rgba(173,170,173,0.4)] text-xs truncate">→ {link.originalUrl}</div>
                     </div>
-                    <div className="flex gap-8 items-center shrink-0">
-                      <div className="text-right">
-                        <div className="text-[rgba(173,170,173,0.6)] text-[10px] font-bold tracking-[1px] uppercase mb-0.5">Clicks</div>
-                        <div className="text-[#f9f5f8] font-bold text-lg">{formatClicks(link._count?.clicks ?? 0)}</div>
-                      </div>
+                    <div className="text-right shrink-0 hidden sm:block">
+                      <div className="text-[rgba(173,170,173,0.5)] text-[9px] font-bold tracking-[1px] uppercase">Clicks</div>
+                      <div className="text-[#f9f5f8] font-bold text-base">{formatClicks(link._count?.clicks ?? 0)}</div>
                     </div>
-                    <div className="flex items-center gap-3 shrink-0 ml-2">
-                      <button
-                        onClick={() => handleCopy(link.slug)}
-                        className="text-[#adaaad] hover:text-[#f9f5f8] transition-colors p-1"
-                        title="Copy URL"
-                      >
-                        {copied === link.slug ? <Check size={16} className="text-[#bd9dff]" /> : <Copy size={16} />}
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button onClick={() => setEditingLink(link)} className="text-[#adaaad] hover:text-[#bd9dff] transition-colors p-1.5 rounded-lg hover:bg-[rgba(189,157,255,0.08)]" title="Edit">
+                        <Pencil size={13} />
                       </button>
-                      <button
-                        onClick={() => handleDelete(link.id)}
-                        className="text-[#adaaad] hover:text-[#ff6060] transition-colors p-1"
-                        title="Delete"
-                      >
-                        <Trash2 size={16} />
+                      <button onClick={() => handleDelete(link.id)} className="text-[#adaaad] hover:text-[#ff6060] transition-colors p-1.5 rounded-lg hover:bg-[rgba(255,96,96,0.08)]" title="Delete">
+                        <Trash2 size={13} />
                       </button>
                     </div>
                   </div>
@@ -275,10 +346,10 @@ export default function DashboardClient({ user }: { user: User }) {
       </div>
 
       {showModal && (
-        <CreateLinkModal
-          onClose={() => setShowModal(false)}
-          onCreated={handleCreated}
-        />
+        <CreateLinkModal onClose={() => setShowModal(false)} onCreated={handleCreated} />
+      )}
+      {editingLink && (
+        <EditLinkModal link={editingLink} onClose={() => setEditingLink(null)} onUpdated={handleUpdated} />
       )}
     </>
   );

@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
+import { ThemeProvider, useTheme } from "@/lib/theme";
 
 interface User {
   id?: string;
@@ -54,7 +55,27 @@ function Avatar({ user, size = 32 }: { user: User; size?: number }) {
   );
 }
 
-export default function DashboardLayout({
+function ThemeToggle() {
+  const { theme, toggle } = useTheme();
+  return (
+    <button
+      onClick={toggle}
+      title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+      style={{
+        width: "32px", height: "32px", borderRadius: "10px",
+        background: "rgba(255,255,255,0.05)", border: "1px solid rgba(72,71,74,0.15)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: "15px", cursor: "pointer", transition: "background 0.2s",
+      }}
+      onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.1)")}
+      onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
+    >
+      {theme === "dark" ? "☀️" : "🌙"}
+    </button>
+  );
+}
+
+function DashboardLayoutInner({
   user,
   children,
 }: {
@@ -90,6 +111,7 @@ export default function DashboardLayout({
 
         {/* Right side */}
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <ThemeToggle />
           <Avatar user={user} size={30} />
           <span style={{ fontSize: "13px", color: S.onSurfaceVariant }}>
             {user.name ?? user.email}
@@ -307,5 +329,13 @@ export default function DashboardLayout({
       </nav>
 
     </div>
+  );
+}
+
+export default function DashboardLayout({ user, children }: { user: User; children: React.ReactNode }) {
+  return (
+    <ThemeProvider>
+      <DashboardLayoutInner user={user}>{children}</DashboardLayoutInner>
+    </ThemeProvider>
   );
 }

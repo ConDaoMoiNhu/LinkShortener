@@ -88,6 +88,19 @@ export default function AnalyticsClient() {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(() => getLinksCache() === null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
   const [activeDevice, setActiveDevice] = useState(0);
   const [mounted, setMounted] = useState(false);
 
@@ -160,6 +173,28 @@ export default function AnalyticsClient() {
     { label: "Top Country", value: topCountries[0]?.flag ?? "—", isText: true, sub: topCountries[0]?.name, accent: "#a8e6cf" },
   ];
 
+  // Empty state — no links at all
+  if (!loading && links.length === 0) {
+    return (
+      <div className="p-4 md:p-8 max-w-[1100px]">
+        <h1 className="text-[#f9f5f8] font-black text-4xl md:text-5xl tracking-[-2.4px] mb-8">Analytics</h1>
+        <div className="flex flex-col items-center justify-center py-24 gap-5 bg-[#19191c] rounded-2xl border border-[rgba(72,71,74,0.1)]">
+          <div className="text-5xl opacity-30">📊</div>
+          <div className="text-center">
+            <p className="text-[#f9f5f8] font-bold text-lg mb-2">No data yet</p>
+            <p className="text-[#adaaad] text-sm max-w-xs">
+              Create a short link and share it — analytics will appear here as clicks come in.
+            </p>
+          </div>
+          <a href="/dashboard" className="px-6 py-2.5 rounded-xl font-bold text-sm text-black transition-opacity hover:opacity-90"
+            style={{ backgroundImage: "linear-gradient(135deg, rgb(189,157,255) 0%, rgb(138,76,252) 100%)" }}>
+            Create your first link →
+          </a>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 md:p-8 max-w-[1100px]">
       {/* Header */}
@@ -180,19 +215,89 @@ export default function AnalyticsClient() {
               </p>
             )}
           </div>
-          {links.length > 1 && (
-            <select
-              value={selected?.id ?? ""}
-              onChange={e => setSelected(links.find(l => l.id === e.target.value) ?? null)}
-              className="bg-[#19191c] border border-[rgba(72,71,74,0.2)] rounded-xl px-4 py-2.5 text-[#f9f5f8] text-sm font-bold outline-none cursor-pointer"
-              style={{ backgroundImage: "none" }}
-            >
-              {links.map(l => (
-                <option key={l.id} value={l.id}>
-                  /{l.slug} ({l._count?.clicks ?? 0} clicks)
-                </option>
-              ))}
-            </select>
+          {links.length > 0 && (
+            <div className="relative" ref={dropdownRef}>
+              {/* Trigger */}
+              <button
+                onClick={() => setDropdownOpen(o => !o)}
+                style={{
+                  display: "flex", alignItems: "center", gap: "10px",
+                  padding: "10px 14px", borderRadius: "12px",
+                  background: "#19191c",
+                  border: `1px solid ${dropdownOpen ? "rgba(189,157,255,0.4)" : "rgba(72,71,74,0.25)"}`,
+                  color: "#f9f5f8", fontSize: "13px", fontWeight: 700,
+                  cursor: "pointer", transition: "border-color 0.2s",
+                  fontFamily: "inherit", whiteSpace: "nowrap",
+                  boxShadow: dropdownOpen ? "0 0 0 3px rgba(189,157,255,0.08)" : "none",
+                  minWidth: "200px", justifyContent: "space-between",
+                }}
+              >
+                <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <span style={{ color: "rgba(189,157,255,0.7)", fontWeight: 400 }}>/</span>
+                  <span>{selected?.slug ?? "Select link"}</span>
+                </span>
+                <span style={{
+                  color: "#adaaad", fontSize: "11px",
+                  transform: dropdownOpen ? "rotate(180deg)" : "rotate(0deg)",
+                  transition: "transform 0.2s",
+                  display: "inline-block",
+                }}>▾</span>
+              </button>
+
+              {/* Dropdown panel */}
+              {dropdownOpen && (
+                <div style={{
+                  position: "absolute", top: "calc(100% + 6px)", right: 0,
+                  minWidth: "100%", zIndex: 100,
+                  background: "#19191c",
+                  border: "1px solid rgba(72,71,74,0.3)",
+                  borderRadius: "14px",
+                  boxShadow: "0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04)",
+                  overflow: "hidden",
+                  animation: "scaleIn 0.15s cubic-bezier(0.16,1,0.3,1) both",
+                }}>
+                  {links.map((l, i) => {
+                    const isActive = l.id === selected?.id;
+                    return (
+                      <button
+                        key={l.id}
+                        onClick={() => { setSelected(l); setDropdownOpen(false); }}
+                        style={{
+                          display: "flex", alignItems: "center", justifyContent: "space-between",
+                          width: "100%", padding: "10px 14px",
+                          background: isActive ? "rgba(189,157,255,0.08)" : "transparent",
+                          border: "none",
+                          borderBottom: i < links.length - 1 ? "1px solid rgba(72,71,74,0.1)" : "none",
+                          color: isActive ? "#bd9dff" : "#f9f5f8",
+                          fontSize: "13px", fontWeight: isActive ? 700 : 500,
+                          cursor: "pointer", textAlign: "left",
+                          fontFamily: "inherit", gap: "16px",
+                          transition: "background 0.15s",
+                        }}
+                        onMouseEnter={e => {
+                          if (!isActive) e.currentTarget.style.background = "rgba(255,255,255,0.04)";
+                        }}
+                        onMouseLeave={e => {
+                          if (!isActive) e.currentTarget.style.background = "transparent";
+                        }}
+                      >
+                        <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                          <span style={{ color: isActive ? "rgba(189,157,255,0.6)" : "rgba(249,245,248,0.3)", fontWeight: 400 }}>/</span>
+                          {l.slug}
+                        </span>
+                        <span style={{
+                          fontSize: "11px", fontWeight: 600,
+                          color: isActive ? "rgba(189,157,255,0.7)" : "rgba(173,170,173,0.5)",
+                          whiteSpace: "nowrap",
+                        }}>
+                          {l._count?.clicks ?? 0} clicks
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>

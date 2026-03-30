@@ -55,6 +55,46 @@
 
 html { color-scheme: dark; }
 
+/* ── Light mode overrides ─────────────────────── */
+html.light {
+  color-scheme: light;
+  --primary: #7c3aed;
+  --primary-dim: #6d28d9;
+  --surface: #f4f4f6;
+  --surface-low: #ffffff;
+  --surface-container: #ebebed;
+  --surface-high: #e2e2e4;
+  --surface-bright: #d4d4d6;
+  --on-surface: #1c1c1e;
+  --on-surface-variant: #505055;
+  --outline-variant: #c8c8ca;
+}
+html.light body { background: #f4f4f6; color: #1c1c1e; }
+/* Key surface overrides */
+html.light [style*="background: #0e0e10"],
+html.light [style*="background:#0e0e10"] { background: #f4f4f6 !important; }
+html.light [style*="background: #131315"],
+html.light [style*="background:#131315"] { background: #ffffff !important; }
+html.light [style*="background: #19191c"],
+html.light [style*="background:#19191c"] { background: #ebebed !important; }
+html.light [style*="background: #1f1f22"],
+html.light [style*="background:#1f1f22"] { background: #e2e2e4 !important; }
+html.light [style*="background: rgba(14,14,16"] { background: rgba(244,244,246,0.92) !important; }
+html.light [style*="background: rgba(19,19,21"] { background: rgba(255,255,255,0.95) !important; }
+/* Tailwind bg overrides */
+html.light .bg-\[\#0e0e10\] { background-color: #f4f4f6 !important; }
+html.light .bg-\[\#131315\] { background-color: #ffffff !important; }
+html.light .bg-\[\#19191c\] { background-color: #ebebed !important; }
+html.light .bg-\[\#1f1f22\] { background-color: #e2e2e4 !important; }
+html.light .bg-\[\#2c2c2f\] { background-color: #d4d4d6 !important; }
+html.light .bg-black { background-color: #f0f0f2 !important; }
+/* Text overrides */
+html.light .text-\[\#f9f5f8\] { color: #1c1c1e !important; }
+html.light .text-\[\#adaaad\] { color: #636366 !important; }
+/* Border overrides */
+html.light .border-\[rgba\(72\,71\,74\,0\.1\)\] { border-color: rgba(0,0,0,0.08) !important; }
+html.light .border-\[rgba\(72\,71\,74\,0\.15\)\] { border-color: rgba(0,0,0,0.1) !important; }
+
 /* Pointer cursor on all interactive elements globally */
 button,
 a,
