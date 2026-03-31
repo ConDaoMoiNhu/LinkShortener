@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
   LayoutDashboard, Link2, BarChart2, Settings,
@@ -31,21 +30,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const router = useRouter();
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [showHelp, setShowHelp] = useState(false);
-  const notifRef = useRef<HTMLDivElement>(null);
-  const helpRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (notifRef.current && !notifRef.current.contains(e.target as Node)) setShowNotifications(false);
-      if (helpRef.current && !helpRef.current.contains(e.target as Node)) setShowHelp(false);
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
   function isActive(href: string) {
     if (href === "/dashboard") return pathname === "/dashboard";
@@ -65,7 +50,7 @@ export default function DashboardLayout({
       <aside className="w-[220px] shrink-0 bg-[#131315] flex flex-col h-full border-r border-[rgba(72,71,74,0.1)]">
         {/* Logo */}
         <div className="px-4 pt-6 pb-6">
-          <div className="flex items-center gap-3">
+          <Link href="/dashboard" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <div className="bg-[rgba(189,157,255,0.1)] w-10 h-10 rounded-lg flex items-center justify-center shrink-0">
               <svg width="20" height="10" viewBox="0 0 20 10" fill="none">
                 <path
@@ -78,7 +63,7 @@ export default function DashboardLayout({
               <div className="text-[#f9f5f8] font-bold text-sm leading-tight">SnapLink</div>
               <div className="text-[rgba(249,245,248,0.5)] text-xs">Editorial Curator</div>
             </div>
-          </div>
+          </Link>
         </div>
 
         {/* Nav */}
@@ -127,7 +112,7 @@ export default function DashboardLayout({
       {/* ── Main ── */}
       <div className="flex flex-col flex-1 min-w-0 h-full">
         {/* Header */}
-        <header className="h-16 border-b border-[rgba(72,71,74,0.1)] flex items-center justify-between px-6 shrink-0 bg-[rgba(14,14,16,0.8)] backdrop-blur-sm">
+        <header className="h-16 border-b border-[rgba(72,71,74,0.1)] flex items-center justify-between px-6 shrink-0 bg-[#0e0e10]">
           <div className="flex items-center gap-3 bg-[#19191c] border border-[rgba(72,71,74,0.1)] rounded-lg px-3 h-9 w-64">
             <Search size={14} className="text-[#adaaad] shrink-0" />
             <input

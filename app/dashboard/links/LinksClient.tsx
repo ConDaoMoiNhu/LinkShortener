@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import dynamic from "next/dynamic";
 import { Copy, Trash2, ChevronLeft, ChevronRight, Check, Search, ExternalLink, QrCode, BarChart2 } from "lucide-react";
-import { getLinksCache, setLinksCache, invalidateLinksCache, CachedLink } from "@/lib/links-cache";
+import { getLinksCache, setLinksCache, CachedLink } from "@/lib/links-cache";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
@@ -90,13 +90,20 @@ export default function LinksClient() {
   const handleDelete = useCallback(async (id: string) => {
     if (!confirm("Delete this link?")) return;
     const snapshot = links;
-    setLinks(prev => prev.filter(l => l.id !== id));
-    invalidateLinksCache();
+    setLinks(prev => {
+      const updated = prev.filter(l => l.id !== id);
+      setLinksCache(updated);
+      return updated;
+    });
     try {
       const res = await fetch(`/api/links/${id}`, { method: "DELETE" });
-      if (!res.ok) setLinks(snapshot);
+      if (!res.ok) {
+        setLinks(snapshot);
+        setLinksCache(snapshot);
+      }
     } catch {
       setLinks(snapshot);
+      setLinksCache(snapshot);
     }
   }, [links]);
 
