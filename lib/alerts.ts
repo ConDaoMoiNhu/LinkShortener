@@ -1,6 +1,6 @@
 /**
- * Alert utility — logs critical events with [ALERT] prefix.
- * Ready for webhook integration (Slack/Discord) later.
+ * Alert utility — logs critical events and optionally fires webhook.
+ * Set ALERT_WEBHOOK_URL env var to enable Slack/Discord notifications.
  */
 
 import { logger } from "./logger";
@@ -19,18 +19,25 @@ interface AlertOptions {
 }
 
 /**
- * Fire an alert. Currently logs at error level with [ALERT] prefix.
- * In the future, this can send webhooks to Slack/Discord/PagerDuty.
+ * Fire an alert. Logs at error level with [ALERT] prefix.
+ * If ALERT_WEBHOOK_URL is set, sends a POST to the webhook (fire-and-forget).
  */
 export function fireAlert({ type, message, meta }: AlertOptions): void {
   logger.error(`[ALERT][${type}] ${message}`, meta);
 
-  // TODO: Add webhook integration
-  // if (process.env.ALERT_WEBHOOK_URL) {
-  //   fetch(process.env.ALERT_WEBHOOK_URL, {
-  //     method: "POST",
-  //     headers: { "Content-Type": "application/json" },
-  //     body: JSON.stringify({ type, message, meta, timestamp: new Date().toISOString() }),
-  //   }).catch(() => {});
-  // }
+  const webhookUrl = process.env.ALERT_WEBHOOK_URL;
+  if (webhookUrl) {
+    fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type,
+        message,
+        meta,
+        timestamp: new Date().toISOString(),
+      }),
+    }).catch(() => {
+      // Webhook failure must never throw — alerts are best-effort
+    });
+  }
 }

@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import crypto from "crypto";
 import { db } from "@/lib/db";
 import { getSessionOrDev } from "@/lib/dev-session";
+import { logger } from "@/lib/logger";
 
 export async function getAuthUser(request: NextRequest) {
   // 1. Session based auth (Browser context)
@@ -35,8 +36,12 @@ export async function getAuthUser(request: NextRequest) {
           type: "api-key"
         };
       }
+
+      logger.warn("API key auth failed — key not found", { keyPrefix: apiKey.slice(0, 16) });
+      return null;
     } catch (err) {
-      console.error("API Key auth error:", err);
+      const msg = err instanceof Error ? err.message : String(err);
+      logger.error("API key auth error", { error: msg });
       return null;
     }
   }

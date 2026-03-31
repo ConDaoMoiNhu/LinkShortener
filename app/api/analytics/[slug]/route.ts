@@ -28,7 +28,7 @@ export async function GET(
     }
 
     const userId = session.user.id;
-    if (process.env.NODE_ENV !== "development" && link.userId !== userId) {
+    if (process.env.DISABLE_AUTH !== "true" && link.userId !== userId) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 

@@ -5,6 +5,8 @@
  */
 
 import { kv } from "@/lib/kv";
+import { logger } from "@/lib/logger";
+import { fireAlert } from "@/lib/alerts";
 
 interface RateLimitOptions {
   /** Maximum number of requests allowed within the window */
@@ -58,8 +60,11 @@ export async function rateLimit(
       remaining: options.maxRequests - count,
       retryAfterMs: 0,
     };
-  } catch {
-    // KV unavailable — fail open so users are not blocked
+  } catch (err) {
+    // KV unavailable — fail open so users are not blocked, but alert
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.warn("Rate limiter KV unavailable — failing open", { action, error: msg });
+    fireAlert({ type: "KV_UNAVAILABLE", message: "Rate limiter KV unavailable", meta: { action, error: msg } });
     return { allowed: true, remaining: options.maxRequests, retryAfterMs: 0 };
   }
 }

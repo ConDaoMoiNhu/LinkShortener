@@ -34,7 +34,7 @@ export async function PATCH(
     if (!link) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     const userId = session.user.id;
-    if (process.env.NODE_ENV !== "development" && link.userId !== userId) {
+    if (process.env.DISABLE_AUTH !== "true" && link.userId !== userId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -93,7 +93,7 @@ export async function DELETE(
     if (!link) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     const userId = session.user.id;
-    if (process.env.NODE_ENV !== "development" && link.userId !== userId) {
+    if (process.env.DISABLE_AUTH !== "true" && link.userId !== userId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

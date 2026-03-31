@@ -4,8 +4,9 @@ import { generateQRCode } from "@/lib/qr";
 import { getSessionOrDev } from "@/lib/dev-session";
 import { rateLimit } from "@/lib/rate-limit";
 import { logger } from "@/lib/logger";
+import { isValidUrl } from "@/lib/utils";
 
-const schema = z.object({ url: z.string().url() });
+const schema = z.object({ url: z.string().refine(isValidUrl, "URL phải bắt đầu bằng http hoặc https") });
 
 export async function GET(request: NextRequest) {
   const session = await getSessionOrDev(request);

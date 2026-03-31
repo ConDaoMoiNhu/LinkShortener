@@ -22,8 +22,8 @@ export default async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  // Auth protection for dashboard (skip in absolute local dev mode)
-  if (pathname.startsWith("/dashboard") && process.env.NODE_ENV !== "development") {
+  // Auth protection for dashboard (skip only when DISABLE_AUTH=true, e.g. local dev)
+  if (pathname.startsWith("/dashboard") && process.env.DISABLE_AUTH !== "true") {
     if (!hasSession) {
       const loginUrl = request.nextUrl.clone();
       loginUrl.pathname = "/login";

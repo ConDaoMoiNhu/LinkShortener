@@ -18,6 +18,7 @@ export async function POST(request: NextRequest) {
       data: { apiKey: hashedKey },
     });
 
+    logger.info("API key regenerated", { userId: session.user.id });
     // Return plaintext once — the hash is stored; this is the only time it's visible
     return NextResponse.json({ apiKey: newKey });
   } catch (err) {
