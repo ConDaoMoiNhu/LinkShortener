@@ -37,7 +37,7 @@ export async function GET(
       where: { linkId: link.id },
       orderBy: { createdAt: "desc" },
       take: MAX_CLICKS_QUERY,
-      select: { country: true, device: true, referer: true, createdAt: true },
+      select: { country: true, device: true, referer: true, createdAt: true, visitorId: true },
     });
 
     const totalClicks = link._count.clicks;
@@ -66,6 +66,18 @@ export async function GET(
       return acc;
     }, {});
 
+    // Unique visitors: distinct non-null visitorIds in the sample window
+    const uniqueVisitors = new Set(
+      clicks.map(c => c.visitorId).filter(Boolean)
+    ).size;
+
+    // Avg clicks per day: totalClicks / days since link was created (min 1 day)
+    const daysSinceCreated = Math.max(
+      1,
+      Math.ceil((Date.now() - new Date(link.createdAt).getTime()) / 86_400_000)
+    );
+    const avgClicksPerDay = parseFloat((totalClicks / daysSinceCreated).toFixed(1));
+
     // Growth: dedicated DB queries so the result is exact even for links with >1000 clicks
     const now = new Date();
     const d7 = new Date(now); d7.setDate(now.getDate() - 7);
@@ -76,7 +88,10 @@ export async function GET(
     ]);
     const weekGrowth = prev7 === 0 ? null : Math.round(((last7 - prev7) / prev7) * 100);
 
-    return NextResponse.json({ totalClicks, byDevice, byCountry, byDate, byReferer, weekGrowth });
+    return NextResponse.json({
+      totalClicks, byDevice, byCountry, byDate, byReferer,
+      weekGrowth, uniqueVisitors, avgClicksPerDay,
+    });
   } catch (err) {
     logger.error("GET /api/analytics/[slug] failed", { slug, error: err });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

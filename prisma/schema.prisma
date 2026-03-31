@@ -78,9 +78,11 @@ model Click {
   country   String?
   device    String?
   referer   String?
+  visitorId String?
   createdAt DateTime @default(now())
 
   @@index([linkId])
   @@index([linkId, createdAt])
   @@index([createdAt])
+  @@index([linkId, visitorId])
 }

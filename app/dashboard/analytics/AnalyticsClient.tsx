@@ -14,6 +14,8 @@ interface AnalyticsData {
   byDate: Record<string, number>;
   byReferer: Record<string, number>;
   weekGrowth: number | null;
+  uniqueVisitors: number;
+  avgClicksPerDay: number;
 }
 
 const REFERER_ICONS: Record<string, string> = {
@@ -284,17 +286,19 @@ export default function AnalyticsClient() {
           },
           {
             label: "Unique Visitors",
-            value: "—",
-            sub: "Tracking not enabled",
+            value: analyticsLoading ? "—" : (analytics?.uniqueVisitors ?? 0).toLocaleString(),
+            sub: analytics && analytics.totalClicks > 0
+              ? `${Math.round(((analytics.uniqueVisitors ?? 0) / analytics.totalClicks) * 100)}% of total clicks`
+              : "No data yet",
             subColor: "#adaaad",
             isUp: false,
           },
           {
-            label: "Avg. Time to Click",
-            value: "—",
-            sub: "Tracking not enabled",
+            label: "Avg. Clicks / Day",
+            value: analyticsLoading ? "—" : (analytics?.avgClicksPerDay ?? 0).toLocaleString(),
+            sub: analytics && analytics.avgClicksPerDay > 0 ? "since link created" : "No data yet",
             subColor: "#bd9dff",
-            isUp: false,
+            isUp: (analytics?.avgClicksPerDay ?? 0) > 0,
           },
           {
             label: "Top Region",

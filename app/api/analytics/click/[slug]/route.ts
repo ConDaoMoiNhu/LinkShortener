@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
 import { db } from "@/lib/db";
 import { rateLimit } from "@/lib/rate-limit";
 import { logger } from "@/lib/logger";
@@ -39,7 +40,7 @@ export async function POST(
     }
 
     const rawUserAgent = request.headers.get("user-agent") ?? "";
-    const userAgent = rawUserAgent.slice(0, 512); // Truncate to prevent oversized storage
+    const userAgent = rawUserAgent.slice(0, 512);
     const country = request.headers.get("x-vercel-ip-country") ?? null;
     const device = detectDevice(userAgent);
 
@@ -51,8 +52,14 @@ export async function POST(
       catch { referer = null; }
     }
 
+    // Unique visitor fingerprint: SHA-256 of IP + UserAgent (privacy-safe, no PII stored)
+    const visitorId = crypto
+      .createHash("sha256")
+      .update(`${ip}:${rawUserAgent}`)
+      .digest("hex");
+
     await db.click.create({
-      data: { linkId: link.id, country, device, referer },
+      data: { linkId: link.id, country, device, referer, visitorId },
     });
 
     return new NextResponse(null, { status: 200 });
