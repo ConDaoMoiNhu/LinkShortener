@@ -5,7 +5,14 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import SettingsClient from "./SettingsClient";
 
-const DEV_USER = { id: "dev-user-local", name: "Dev User", email: "dev@localhost", image: null };
+const DEV_USER = {
+  id: "dev-user-local",
+  name: "Dev User",
+  email: "dev@localhost",
+  image: null,
+  location: null as string | null,
+  timezone: null as string | null,
+};
 
 function hashApiKey(key: string): string {
   return crypto.createHash("sha256").update(key).digest("hex");
@@ -15,7 +22,6 @@ async function getOrCreateApiKey(userId: string): Promise<string> {
   const user = await db.user.findUnique({ where: { id: userId }, select: { apiKey: true } });
 
   if (user?.apiKey) {
-    // Return a masked placeholder — the real plaintext key is only shown once on creation
     return "sk_live_" + "*".repeat(48);
   }
 
@@ -38,8 +44,24 @@ export default async function SettingsPage() {
   }
   await headers();
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id) return null; // or redirect logic via middleware
+  if (!session?.user?.id) return null;
 
-  const apiKey = await getOrCreateApiKey(session.user.id);
-  return <SettingsClient user={session.user} apiKey={apiKey} />;
+  const [apiKey, dbUser] = await Promise.all([
+    getOrCreateApiKey(session.user.id),
+    db.user.findUnique({
+      where: { id: session.user.id },
+      select: { location: true, timezone: true },
+    }),
+  ]);
+
+  return (
+    <SettingsClient
+      user={{
+        ...session.user,
+        location: dbUser?.location ?? null,
+        timezone: dbUser?.timezone ?? null,
+      }}
+      apiKey={apiKey}
+    />
+  );
 }

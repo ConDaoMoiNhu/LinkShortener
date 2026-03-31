@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Eye, EyeOff, Copy, RefreshCw, BookOpen, Shield, MessageCircle, Check } from "lucide-react";
+import { useState, useRef } from "react";
+import { Eye, EyeOff, Copy, RefreshCw, BookOpen, Shield, MessageCircle, Check, Pencil } from "lucide-react";
 import { signOut } from "next-auth/react";
 
 interface User {
@@ -9,12 +9,36 @@ interface User {
   name?: string | null;
   email?: string | null;
   image?: string | null;
+  location?: string | null;
+  timezone?: string | null;
 }
 
 const HELP_LINKS = [
   { icon: BookOpen, title: "API Documentation", desc: "Full SDK and endpoint guide", href: "https://github.com/ConDaoMoiNhu/LinkShortener#readme" },
   { icon: Shield, title: "Security & Privacy", desc: "GDPR and Data Compliance", href: "https://github.com/ConDaoMoiNhu/LinkShortener/blob/master/README.md" },
   { icon: MessageCircle, title: "Priority Support", desc: "Chat with our engineers", href: "https://github.com/ConDaoMoiNhu/LinkShortener/issues" },
+];
+
+const COUNTRIES = [
+  "Afghanistan", "Albania", "Algeria", "Argentina", "Australia", "Austria", "Bangladesh",
+  "Belgium", "Bolivia", "Brazil", "Cambodia", "Canada", "Chile", "China", "Colombia",
+  "Czech Republic", "Denmark", "Egypt", "Ethiopia", "Finland", "France", "Germany",
+  "Ghana", "Greece", "Hungary", "India", "Indonesia", "Iran", "Iraq", "Ireland",
+  "Israel", "Italy", "Japan", "Jordan", "Kazakhstan", "Kenya", "South Korea",
+  "Malaysia", "Mexico", "Morocco", "Myanmar", "Netherlands", "New Zealand", "Nigeria",
+  "Norway", "Pakistan", "Peru", "Philippines", "Poland", "Portugal", "Romania",
+  "Russia", "Saudi Arabia", "Singapore", "South Africa", "Spain", "Sri Lanka",
+  "Sweden", "Switzerland", "Taiwan", "Tanzania", "Thailand", "Turkey", "Ukraine",
+  "United Arab Emirates", "United Kingdom", "United States", "Venezuela", "Vietnam",
+];
+
+const TIMEZONES = [
+  "Pacific/Honolulu", "America/Anchorage", "America/Los_Angeles", "America/Denver",
+  "America/Chicago", "America/New_York", "America/Sao_Paulo", "Atlantic/Azores",
+  "UTC", "Europe/London", "Europe/Paris", "Europe/Berlin", "Europe/Moscow",
+  "Asia/Dubai", "Asia/Karachi", "Asia/Kolkata", "Asia/Dhaka", "Asia/Bangkok",
+  "Asia/Ho_Chi_Minh", "Asia/Singapore", "Asia/Shanghai", "Asia/Tokyo",
+  "Asia/Seoul", "Australia/Sydney", "Pacific/Auckland",
 ];
 
 export default function SettingsClient({ user, apiKey }: { user: User; apiKey: string }) {
@@ -24,10 +48,15 @@ export default function SettingsClient({ user, apiKey }: { user: User; apiKey: s
   const [regenerating, setRegenerating] = useState(false);
   const [regenerated, setRegenerated] = useState(false);
   const [currentKey, setCurrentKey] = useState(apiKey);
-  const [location, setLocation] = useState("—");
-  const [timezone, setTimezone] = useState("UTC");
+
+  // Profile state
+  const [editingName, setEditingName] = useState(false);
+  const [name, setName] = useState(user.name ?? "");
+  const [location, setLocation] = useState(user.location ?? "");
+  const [timezone, setTimezone] = useState(user.timezone ?? "UTC");
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saved" | "error">("idle");
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   const maskedKey = currentKey.slice(0, 10) + "••••••••••••••••••••••••••••••••";
 
@@ -57,13 +86,32 @@ export default function SettingsClient({ user, apiKey }: { user: User; apiKey: s
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setSaving(true);
-    setTimeout(() => {
+    setSaveStatus("idle");
+    try {
+      const res = await fetch("/api/user/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: name || undefined, location: location || undefined, timezone }),
+      });
+      if (res.ok) {
+        setSaveStatus("saved");
+        setEditingName(false);
+      } else {
+        setSaveStatus("error");
+      }
+    } catch {
+      setSaveStatus("error");
+    } finally {
       setSaving(false);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    }, 800);
+      setTimeout(() => setSaveStatus("idle"), 2500);
+    }
+  };
+
+  const startEditName = () => {
+    setEditingName(true);
+    setTimeout(() => nameInputRef.current?.select(), 30);
   };
 
   const handlePurge = async () => {
@@ -75,7 +123,6 @@ export default function SettingsClient({ user, apiKey }: { user: User; apiKey: s
 
   return (
     <div className="p-8 max-w-[1100px]">
-      {/* Header */}
       <div className="mb-8">
         <h1 className="text-[#f9f5f8] font-black text-5xl tracking-[-2.4px] leading-tight">
           Workspace Settings
@@ -100,19 +147,19 @@ export default function SettingsClient({ user, apiKey }: { user: User; apiKey: s
                 disabled={saving}
                 className="text-[#bd9dff] font-bold text-sm hover:text-[#d4baff] transition-colors disabled:opacity-50"
               >
-                {saving ? "Saving..." : saved ? "Saved ✓" : "Save Changes"}
+                {saving ? "Saving…" : saveStatus === "saved" ? "✓ Saved" : saveStatus === "error" ? "✗ Error" : "Save Changes"}
               </button>
             </div>
 
             <div className="flex gap-8">
               {/* Avatar */}
               <div className="shrink-0">
-                <div className="w-20 h-20 rounded-xl overflow-hidden bg-[#2c2c2f] flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity">
+                <div className="w-20 h-20 rounded-xl overflow-hidden bg-[#2c2c2f] flex items-center justify-center">
                   {user.image ? (
                     <img src={user.image} alt="" className="w-full h-full object-cover" />
                   ) : (
                     <span className="text-[#bd9dff] font-black text-3xl">
-                      {(user.name ?? user.email ?? "U").charAt(0).toUpperCase()}
+                      {(name || user.email || "U").charAt(0).toUpperCase()}
                     </span>
                   )}
                 </div>
@@ -120,35 +167,76 @@ export default function SettingsClient({ user, apiKey }: { user: User; apiKey: s
 
               {/* Fields */}
               <div className="flex-1 grid grid-cols-2 gap-4">
+                {/* Full Name — inline edit on click */}
                 <div>
                   <label className="text-[#adaaad] text-[11px] font-bold tracking-[1.2px] uppercase block mb-2">Full Name</label>
-                  <div className="w-full bg-black border border-[rgba(72,71,74,0.1)] rounded-lg px-4 py-3 text-[#f9f5f8] text-sm">
-                    {user.name ?? "—"}
-                  </div>
+                  {editingName ? (
+                    <input
+                      ref={nameInputRef}
+                      type="text"
+                      value={name}
+                      onChange={e => setName(e.target.value)}
+                      onBlur={() => setEditingName(false)}
+                      onKeyDown={e => { if (e.key === "Enter") { setEditingName(false); } if (e.key === "Escape") { setName(user.name ?? ""); setEditingName(false); } }}
+                      className="w-full bg-black border border-[rgba(189,157,255,0.4)] rounded-lg px-4 py-3 text-[#f9f5f8] text-sm outline-none"
+                      autoFocus
+                    />
+                  ) : (
+                    <button
+                      onClick={startEditName}
+                      className="w-full bg-black border border-[rgba(72,71,74,0.1)] rounded-lg px-4 py-3 text-[#f9f5f8] text-sm text-left flex items-center justify-between group hover:border-[rgba(189,157,255,0.3)] transition-colors"
+                    >
+                      <span className={name ? "" : "text-[rgba(173,170,173,0.4)]"}>{name || "Click to edit…"}</span>
+                      <Pencil size={13} className="text-[rgba(173,170,173,0.3)] group-hover:text-[#bd9dff] transition-colors shrink-0" />
+                    </button>
+                  )}
                 </div>
+
+                {/* Email — read only (OAuth) */}
                 <div>
                   <label className="text-[#adaaad] text-[11px] font-bold tracking-[1.2px] uppercase block mb-2">Email Address</label>
-                  <div className="w-full bg-black border border-[rgba(72,71,74,0.1)] rounded-lg px-4 py-3 text-[#f9f5f8] text-sm truncate">
+                  <div className="w-full bg-black border border-[rgba(72,71,74,0.1)] rounded-lg px-4 py-3 text-[rgba(173,170,173,0.6)] text-sm truncate select-all">
                     {user.email ?? "—"}
                   </div>
                 </div>
+
+                {/* Location — native select dropdown */}
                 <div>
                   <label className="text-[#adaaad] text-[11px] font-bold tracking-[1.2px] uppercase block mb-2">Location</label>
-                  <input
-                    type="text"
-                    value={location}
-                    onChange={e => setLocation(e.target.value)}
-                    className="w-full bg-black border border-[rgba(72,71,74,0.1)] rounded-lg px-4 py-3 text-[#f9f5f8] text-sm outline-none focus:border-[rgba(189,157,255,0.3)] transition-colors"
-                  />
+                  <div className="relative">
+                    <select
+                      value={location}
+                      onChange={e => setLocation(e.target.value)}
+                      className="w-full appearance-none bg-black border border-[rgba(72,71,74,0.1)] rounded-lg px-4 py-3 text-[#f9f5f8] text-sm outline-none focus:border-[rgba(189,157,255,0.4)] transition-colors cursor-pointer [color-scheme:dark] pr-8"
+                    >
+                      <option value="">Select country…</option>
+                      {COUNTRIES.map(c => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                    <svg className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#adaaad]" width="12" height="12" viewBox="0 0 12 12" fill="none">
+                      <path d="M2 4L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
                 </div>
+
+                {/* Timezone — native select dropdown */}
                 <div>
                   <label className="text-[#adaaad] text-[11px] font-bold tracking-[1.2px] uppercase block mb-2">Timezone</label>
-                  <input
-                    type="text"
-                    value={timezone}
-                    onChange={e => setTimezone(e.target.value)}
-                    className="w-full bg-black border border-[rgba(72,71,74,0.1)] rounded-lg px-4 py-3 text-[#f9f5f8] text-sm outline-none focus:border-[rgba(189,157,255,0.3)] transition-colors"
-                  />
+                  <div className="relative">
+                    <select
+                      value={timezone}
+                      onChange={e => setTimezone(e.target.value)}
+                      className="w-full appearance-none bg-black border border-[rgba(72,71,74,0.1)] rounded-lg px-4 py-3 text-[#f9f5f8] text-sm outline-none focus:border-[rgba(189,157,255,0.4)] transition-colors cursor-pointer [color-scheme:dark] pr-8"
+                    >
+                      {TIMEZONES.map(tz => (
+                        <option key={tz} value={tz}>{tz}</option>
+                      ))}
+                    </select>
+                    <svg className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#adaaad]" width="12" height="12" viewBox="0 0 12 12" fill="none">
+                      <path d="M2 4L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
                 </div>
               </div>
             </div>
@@ -166,8 +254,8 @@ export default function SettingsClient({ user, apiKey }: { user: User; apiKey: s
                 disabled={regenerating}
                 className="flex items-center gap-1.5 text-[#bd9dff] font-bold text-sm hover:text-[#d4baff] transition-colors disabled:opacity-60"
               >
-                <RefreshCw size={14} className={regenerating ? "animate-spin" : regenerated ? "text-green-400" : ""} />
-                {regenerating ? "Regenerating..." : regenerated ? "Regenerated!" : "Regenerate"}
+                <RefreshCw size={14} className={regenerating ? "animate-spin" : ""} />
+                {regenerating ? "Regenerating…" : regenerated ? "Regenerated!" : "Regenerate"}
               </button>
             </div>
 
@@ -222,7 +310,7 @@ export default function SettingsClient({ user, apiKey }: { user: User; apiKey: s
                   disabled={deleting}
                   className="text-[#ff6060] font-bold text-sm hover:text-[#ff8080] transition-colors disabled:opacity-50"
                 >
-                  {deleting ? "Deleting..." : "Purge Data"}
+                  {deleting ? "Deleting…" : "Purge Data"}
                 </button>
               </div>
               <div className="flex items-center justify-between">

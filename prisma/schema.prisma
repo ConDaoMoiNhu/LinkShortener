@@ -20,6 +20,8 @@ model User {
   links          Link[]
   createdAt      DateTime  @default(now())
   apiKey         String?   @unique
+  location       String?
+  timezone       String?
 }
 
 model Account {
