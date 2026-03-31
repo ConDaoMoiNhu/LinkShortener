@@ -117,7 +117,7 @@ export default function DashboardLayout({
             <Search size={14} className="text-[#adaaad] shrink-0" />
             <input
               type="text"
-              placeholder="Search links..."
+              placeholder="Search links… (Enter)"
               className="bg-transparent text-sm text-[#f9f5f8] placeholder-[rgba(173,170,173,0.5)] outline-none flex-1"
               onKeyDown={handleSearch}
             />

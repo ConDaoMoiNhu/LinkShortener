@@ -41,6 +41,21 @@ const TIMEZONES = [
   "Asia/Seoul", "Australia/Sydney", "Pacific/Auckland",
 ];
 
+function getUtcOffset(tz: string): string {
+  try {
+    const date = new Date();
+    const utc = new Date(date.toLocaleString("en-US", { timeZone: "UTC" }));
+    const local = new Date(date.toLocaleString("en-US", { timeZone: tz }));
+    const diff = Math.round((local.getTime() - utc.getTime()) / 60000);
+    const sign = diff >= 0 ? "+" : "-";
+    const h = Math.floor(Math.abs(diff) / 60);
+    const m = Math.abs(diff) % 60;
+    return `UTC${sign}${h}${m ? `:${String(m).padStart(2, "0")}` : ""}`;
+  } catch {
+    return "UTC";
+  }
+}
+
 export default function SettingsClient({ user, apiKey }: { user: User; apiKey: string }) {
   const [showApiKey, setShowApiKey] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -58,9 +73,11 @@ export default function SettingsClient({ user, apiKey }: { user: User; apiKey: s
   const [saveStatus, setSaveStatus] = useState<"idle" | "saved" | "error">("idle");
   const nameInputRef = useRef<HTMLInputElement>(null);
 
-  const maskedKey = currentKey.slice(0, 10) + "••••••••••••••••••••••••••••••••";
+  const isKeyMasked = currentKey.includes("*");
+  const maskedKey = "sk_live_" + "•".repeat(48) + "_";
 
   const handleCopy = () => {
+    if (isKeyMasked) return;
     navigator.clipboard.writeText(currentKey).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -220,7 +237,7 @@ export default function SettingsClient({ user, apiKey }: { user: User; apiKey: s
                   </div>
                 </div>
 
-                {/* Timezone — native select dropdown */}
+                {/* Timezone — native select dropdown with UTC offset */}
                 <div>
                   <label className="text-[#adaaad] text-[11px] font-bold tracking-[1.2px] uppercase block mb-2">Timezone</label>
                   <div className="relative">
@@ -230,7 +247,7 @@ export default function SettingsClient({ user, apiKey }: { user: User; apiKey: s
                       className="w-full appearance-none bg-black border border-[rgba(72,71,74,0.1)] rounded-lg px-4 py-3 text-[#f9f5f8] text-sm outline-none focus:border-[rgba(189,157,255,0.4)] transition-colors cursor-pointer [color-scheme:dark] pr-8"
                     >
                       {TIMEZONES.map(tz => (
-                        <option key={tz} value={tz}>{tz}</option>
+                        <option key={tz} value={tz}>{`${tz} (${getUtcOffset(tz)})`}</option>
                       ))}
                     </select>
                     <svg className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#adaaad]" width="12" height="12" viewBox="0 0 12 12" fill="none">
@@ -266,18 +283,22 @@ export default function SettingsClient({ user, apiKey }: { user: User; apiKey: s
               <div className="flex gap-3">
                 <div className="flex-1 bg-black border border-[rgba(72,71,74,0.1)] rounded-lg px-4 py-3 flex items-center justify-between min-w-0">
                   <span className="text-[#f9f5f8] text-sm font-mono truncate">
-                    {showApiKey ? currentKey : maskedKey}
+                    {isKeyMasked ? maskedKey : (showApiKey ? currentKey : "sk_live_" + "•".repeat(48) + "_")}
                   </span>
-                  <button
-                    onClick={() => setShowApiKey(!showApiKey)}
-                    className="text-[#adaaad] hover:text-[#f9f5f8] transition-colors ml-3 shrink-0"
-                  >
-                    {showApiKey ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
+                  {!isKeyMasked && (
+                    <button
+                      onClick={() => setShowApiKey(!showApiKey)}
+                      className="text-[#adaaad] hover:text-[#f9f5f8] transition-colors ml-3 shrink-0"
+                    >
+                      {showApiKey ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  )}
                 </div>
                 <button
                   onClick={handleCopy}
-                  className="flex items-center gap-2 px-5 py-3 rounded-lg font-bold text-sm shrink-0 transition-all active:scale-95"
+                  disabled={isKeyMasked}
+                  title={isKeyMasked ? "Click Regenerate to get a copyable key" : "Copy API key"}
+                  className="flex items-center gap-2 px-5 py-3 rounded-lg font-bold text-sm shrink-0 transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
                   style={{
                     backgroundImage: copied
                       ? "linear-gradient(135deg, rgb(74,222,128) 0%, rgb(34,197,94) 100%)"
@@ -289,9 +310,15 @@ export default function SettingsClient({ user, apiKey }: { user: User; apiKey: s
                   {copied ? "Copied!" : "Copy"}
                 </button>
               </div>
-              <p className="text-[rgba(173,170,173,0.5)] text-xs mt-3 leading-relaxed">
-                Note: Do not share your API keys in public spaces or include them in client-side code. If compromised, regenerate them immediately.
-              </p>
+              {isKeyMasked ? (
+                <p className="text-[rgba(173,170,173,0.5)] text-xs mt-3 leading-relaxed">
+                  Key is hidden for security. Click <span className="text-[#bd9dff] font-bold">Regenerate</span> to get a new copyable key.
+                </p>
+              ) : (
+                <p className="text-[rgba(173,170,173,0.5)] text-xs mt-3 leading-relaxed">
+                  This key will not be shown again. Copy it now and store it safely. If compromised, regenerate immediately.
+                </p>
+              )}
             </div>
           </div>
 
