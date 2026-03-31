@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getAuthUser } from "@/lib/api-auth";
 import { db } from "@/lib/db";
-import { setSlugUrl } from "@/lib/kv";
+import { setSlugUrl, deleteSlugUrl } from "@/lib/kv";
 import { generateSlug, isValidUrl } from "@/lib/utils";
 import { logger } from "@/lib/logger";
 import { rateLimit } from "@/lib/rate-limit";
@@ -25,7 +25,7 @@ const CreateLinkSchema = z.object({
     .optional(),
   expiresAt: z
     .string()
-    .refine((s) => !s || new Date(s).getTime() > Date.now(), {
+    .refine((s) => new Date(s).getTime() > Date.now(), {
       message: "Thời gian hết hạn phải ở tương lai",
     })
     .optional(),
@@ -83,34 +83,42 @@ export async function POST(request: NextRequest) {
     const { originalUrl, customSlug, expiresAt } = parsed.data;
     const slug = customSlug ?? generateSlug();
 
-    // Check slug limits and existence...
+    // Check per-user link limit before creation
     const count = await db.link.count({ where: { userId: session.user.id } });
     if (count >= 100) return NextResponse.json({ error: "Limit reached" }, { status: 403 });
 
-    const existing = await db.link.findUnique({ where: { slug } });
-    if (existing) {
-      return NextResponse.json({ error: "Slug đã được dùng" }, { status: 409 });
+    let link;
+    try {
+      link = await db.link.create({
+        data: {
+          slug,
+          originalUrl,
+          userId: session.user.id,
+          expiresAt: expiresAt ? new Date(expiresAt) : null,
+        },
+      });
+    } catch (dbErr: any) {
+      // P2002 = unique constraint violation (slug collision)
+      if (dbErr?.code === "P2002") {
+        return NextResponse.json({ error: "Slug đã được dùng" }, { status: 409 });
+      }
+      throw dbErr;
     }
 
-    const link = await db.link.create({
-      data: {
-        slug,
-        originalUrl,
-        userId: session.user.id,
-        expiresAt: expiresAt ? new Date(expiresAt) : null,
-      },
-    });
-
     try {
-      await setSlugUrl(slug, originalUrl);
+      const ttl = expiresAt
+        ? Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000)
+        : undefined;
+      await setSlugUrl(slug, originalUrl, ttl);
     } catch (kvErr) {
       logger.warn("KV cache set failed", { slug, error: kvErr });
     }
 
     logger.info("Link created", { slug });
     return NextResponse.json(link, { status: 201 });
-  } catch (err: any) {
-    return NextResponse.json({ error: "FATAL_CRASH: " + (err.stack ?? err.message ?? "Unknown server fault") }, { status: 500 });
+  } catch (err) {
+    logger.error("POST /api/links failed", { error: err });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -122,8 +130,12 @@ export async function DELETE(request: NextRequest) {
 
   try {
     const userId = session.user.id;
+    // Fetch slugs first so we can clean up KV
+    const links = await db.link.findMany({ where: { userId }, select: { slug: true } });
     await db.link.deleteMany({ where: { userId } });
-    logger.info("All links deleted", { userId });
+    // Best-effort KV cleanup (don't fail if KV is down)
+    await Promise.allSettled(links.map((l) => deleteSlugUrl(l.slug)));
+    logger.info("All links deleted", { userId, count: links.length });
     return NextResponse.json({ ok: true });
   } catch (err) {
     logger.error("DELETE /api/links failed", { error: err });

@@ -41,17 +41,19 @@ export default async function middleware(request: NextRequest) {
 
     if (kvUrl && kvToken) {
       try {
-        const res = await fetch(`${kvUrl}/get/slug:${slug}`, {
+        const encodedSlug = encodeURIComponent(slug);
+        const res = await fetch(`${kvUrl}/get/slug:${encodedSlug}`, {
           headers: { Authorization: `Bearer ${kvToken}` },
           cache: "no-store",
         });
         if (res.ok) {
           const data = await res.json();
           const originalUrl: string | null = data?.result ?? null;
-          if (originalUrl) {
+          // Validate URL from KV to prevent open redirect (only allow http/https)
+          if (originalUrl && /^https?:\/\//i.test(originalUrl)) {
             // Track click before redirecting (await ensures it completes on Edge)
             const origin = request.nextUrl.origin;
-            await fetch(`${origin}/api/analytics/click/${slug}`, {
+            await fetch(`${origin}/api/analytics/click/${encodedSlug}`, {
               method: "POST",
               headers: {
                 "user-agent": request.headers.get("user-agent") ?? "",

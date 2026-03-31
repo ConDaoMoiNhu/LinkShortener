@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/api-auth";
 import { db } from "@/lib/db";
+import { logger } from "@/lib/logger";
 import crypto from "crypto";
 
 export async function POST(request: NextRequest) {
@@ -18,7 +19,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ apiKey: newKey });
   } catch (err) {
-    console.error("Failed to regenerate API key:", err);
+    logger.error("Failed to regenerate API key", { error: err });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

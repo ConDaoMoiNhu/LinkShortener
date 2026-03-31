@@ -66,12 +66,14 @@ export async function GET(
       return acc;
     }, {});
 
-    // Growth: compare last 7 days vs previous 7 days
+    // Growth: dedicated DB queries so the result is exact even for links with >1000 clicks
     const now = new Date();
     const d7 = new Date(now); d7.setDate(now.getDate() - 7);
     const d14 = new Date(now); d14.setDate(now.getDate() - 14);
-    const last7 = clicks.filter(c => c.createdAt >= d7).length;
-    const prev7 = clicks.filter(c => c.createdAt >= d14 && c.createdAt < d7).length;
+    const [last7, prev7] = await Promise.all([
+      db.click.count({ where: { linkId: link.id, createdAt: { gte: d7 } } }),
+      db.click.count({ where: { linkId: link.id, createdAt: { gte: d14, lt: d7 } } }),
+    ]);
     const weekGrowth = prev7 === 0 ? null : Math.round(((last7 - prev7) / prev7) * 100);
 
     return NextResponse.json({ totalClicks, byDevice, byCountry, byDate, byReferer, weekGrowth });
