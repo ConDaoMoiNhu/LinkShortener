@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Copy, Check, Download, Eye, EyeOff } from "lucide-react";
+import { X, Copy, Check, Download } from "lucide-react";
 import type { CachedLink } from "@/lib/links-cache";
 
 interface Props {
@@ -13,8 +13,6 @@ export default function CreateLinkModal({ onClose, onCreated }: Props) {
   const [destinationUrl, setDestinationUrl] = useState("");
   const [slug, setSlug] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<{ slug: string; shortUrl: string; link: CachedLink } | null>(null);
@@ -25,6 +23,13 @@ export default function CreateLinkModal({ onClose, onCreated }: Props) {
   useEffect(() => {
     setOrigin(window.location.origin);
   }, []);
+
+  // Close on Escape key
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   const handleCreate = async () => {
     if (!destinationUrl) return;
@@ -60,7 +65,7 @@ export default function CreateLinkModal({ onClose, onCreated }: Props) {
           .catch(() => {});
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Network/CORS error");
+      setError(err instanceof Error ? err.message : "Network error");
     } finally {
       setLoading(false);
     }
@@ -74,8 +79,8 @@ export default function CreateLinkModal({ onClose, onCreated }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className="relative w-full max-w-xl bg-[rgba(38,37,40,0.95)] rounded-3xl border border-[rgba(72,71,74,0.15)] shadow-[0_40px_80px_0_rgba(189,157,255,0.12)] overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80">
+      <div className="relative w-full max-w-xl bg-[rgba(38,37,40,0.98)] rounded-3xl border border-[rgba(72,71,74,0.15)] shadow-[0_40px_80px_0_rgba(189,157,255,0.12)] overflow-hidden">
         {/* Decorative blurs */}
         <div className="absolute bottom-[-95px] right-[-95px] w-64 h-64 rounded-xl bg-[rgba(189,157,255,0.1)] blur-[50px] pointer-events-none" />
         <div className="absolute top-[-95px] left-[-95px] w-64 h-64 rounded-xl bg-[rgba(195,139,245,0.1)] blur-[50px] pointer-events-none" />
@@ -84,7 +89,7 @@ export default function CreateLinkModal({ onClose, onCreated }: Props) {
         <div className="flex items-start justify-between px-8 pt-8 pb-4 relative z-10">
           <div>
             <h2 className="text-[#f9f5f8] font-black text-3xl tracking-tight">Create New Link</h2>
-            <p className="text-[#adaaad] text-sm mt-1">Configure your editorial shortlink.</p>
+            <p className="text-[#adaaad] text-sm mt-1">Configure your shortlink below.</p>
           </div>
           <button
             onClick={onClose}
@@ -106,7 +111,7 @@ export default function CreateLinkModal({ onClose, onCreated }: Props) {
                     href={qrDataUrl}
                     download={`qr-${result.slug}.png`}
                     className="absolute inset-0 flex items-center justify-center rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity"
-                    style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
+                    style={{ background: "rgba(0,0,0,0.6)" }}
                   >
                     <Download size={28} className="text-white" />
                   </a>
@@ -153,12 +158,14 @@ export default function CreateLinkModal({ onClose, onCreated }: Props) {
                 <label className="text-[#adaaad] text-[11px] font-bold tracking-[1.2px] uppercase">
                   Destination URL *
                 </label>
-                <div className="bg-black rounded-lg border border-[rgba(72,71,74,0.15)] px-4 py-[18px]">
+                <div className="bg-black rounded-lg border border-[rgba(72,71,74,0.15)] px-4 py-[18px] focus-within:border-[rgba(189,157,255,0.4)] transition-colors">
                   <input
                     type="url"
                     placeholder="https://your-destination-url.com"
                     value={destinationUrl}
                     onChange={e => setDestinationUrl(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter") handleCreate(); }}
+                    autoFocus
                     className="bg-transparent text-[#f9f5f8] text-base outline-none w-full placeholder-[rgba(173,170,173,0.4)]"
                   />
                 </div>
@@ -170,7 +177,7 @@ export default function CreateLinkModal({ onClose, onCreated }: Props) {
                   <label className="text-[#adaaad] text-[11px] font-bold tracking-[1.2px] uppercase">
                     Custom Slug
                   </label>
-                  <div className="bg-black rounded-lg border border-[rgba(72,71,74,0.15)] flex items-center overflow-hidden">
+                  <div className="bg-black rounded-lg border border-[rgba(72,71,74,0.15)] flex items-center overflow-hidden focus-within:border-[rgba(189,157,255,0.4)] transition-colors">
                     <span className="pl-4 text-[rgba(173,170,173,0.5)] text-xs font-medium shrink-0 truncate max-w-[100px]">
                       {origin ? origin.replace(/^https?:\/\//, "") + "/" : "…/"}
                     </span>
@@ -187,7 +194,7 @@ export default function CreateLinkModal({ onClose, onCreated }: Props) {
                   <label className="text-[#adaaad] text-[11px] font-bold tracking-[1.2px] uppercase">
                     Expiry Date
                   </label>
-                  <div className="bg-black rounded-lg border border-[rgba(72,71,74,0.15)] px-4 py-[14px] flex items-center gap-2">
+                  <div className="bg-black rounded-lg border border-[rgba(72,71,74,0.15)] px-4 py-[14px] flex items-center gap-2 focus-within:border-[rgba(189,157,255,0.4)] transition-colors">
                     <input
                       type="date"
                       value={expiryDate}
@@ -198,42 +205,21 @@ export default function CreateLinkModal({ onClose, onCreated }: Props) {
                 </div>
               </div>
 
-              {/* Password */}
-              <div className="flex flex-col gap-2">
-                <label className="text-[#adaaad] text-[11px] font-bold tracking-[1.2px] uppercase">
-                  Optional Password
-                </label>
-                <div className="relative">
-                  <div className="bg-black rounded-lg border border-[rgba(72,71,74,0.15)] px-4 py-[18px]">
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={e => setPassword(e.target.value)}
-                      className="bg-transparent text-[#f9f5f8] text-base outline-none w-full pr-8 placeholder-[rgba(173,170,173,0.4)]"
-                    />
-                  </div>
-                  <button
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[rgba(173,170,173,0.6)] hover:text-[#adaaad] transition-colors"
-                    type="button"
-                  >
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
-              </div>
-
-              {error && <p className="text-[#ff6060] text-sm">{error}</p>}
+              {error && (
+                <p className="text-[#ff6060] text-sm flex items-center gap-2">
+                  <span>✗</span> {error}
+                </p>
+              )}
 
               {/* Actions */}
               <div className="flex gap-4 items-center pt-4 border-t border-[rgba(72,71,74,0.1)]">
                 <button
                   onClick={handleCreate}
-                  disabled={loading}
-                  className="flex-1 py-4 rounded-lg font-bold text-sm text-[#3c0089] text-center transition-opacity disabled:opacity-70 shadow-[0_20px_40px_0_rgba(189,157,255,0.2)]"
+                  disabled={loading || !destinationUrl}
+                  className="flex-1 py-4 rounded-lg font-bold text-sm text-[#3c0089] text-center transition-opacity disabled:opacity-50 shadow-[0_20px_40px_0_rgba(189,157,255,0.2)]"
                   style={{ backgroundImage: "linear-gradient(135deg, rgb(189,157,255) 0%, rgb(138,76,252) 100%)" }}
                 >
-                  {loading ? "Creating..." : "Create Link"}
+                  {loading ? "Creating…" : "Create Link"}
                 </button>
                 <button
                   onClick={onClose}

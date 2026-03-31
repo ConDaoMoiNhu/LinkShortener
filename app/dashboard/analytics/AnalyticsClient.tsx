@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip,
   ResponsiveContainer, Cell,
@@ -51,8 +52,16 @@ const CustomBarTooltip = ({ active, payload }: any) => {
 };
 
 export default function AnalyticsClient() {
+  const searchParams = useSearchParams();
+  const slugFromUrl = searchParams.get("slug");
+
   const [links, setLinks] = useState<CachedLink[]>(() => getLinksCache() ?? []);
-  const [selected, setSelected] = useState<CachedLink | null>(() => getLinksCache()?.[0] ?? null);
+  const [selected, setSelected] = useState<CachedLink | null>(() => {
+    const cache = getLinksCache();
+    if (!cache) return null;
+    if (slugFromUrl) return cache.find(l => l.slug === slugFromUrl) ?? cache[0] ?? null;
+    return cache[0] ?? null;
+  });
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(() => getLinksCache() === null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
@@ -80,10 +89,14 @@ export default function AnalyticsClient() {
       const data: CachedLink[] = await res.json();
       setLinks(data);
       setLinksCache(data);
-      setSelected(prev => prev ?? data[0] ?? null);
+      setSelected(prev => {
+        if (prev) return prev;
+        if (slugFromUrl) return data.find(l => l.slug === slugFromUrl) ?? data[0] ?? null;
+        return data[0] ?? null;
+      });
     }
     setLoading(false);
-  }, []);
+  }, [slugFromUrl]);
 
   useEffect(() => { fetchLinks(); }, [fetchLinks]);
 
@@ -207,7 +220,7 @@ export default function AnalyticsClient() {
                   className="flex items-center gap-2 px-5 py-2.5 bg-[#19191c] border border-[rgba(72,71,74,0.2)] rounded-lg text-[#adaaad] text-sm font-bold hover:text-[#f9f5f8] transition-colors"
                   style={{ borderColor: dropdownOpen ? "rgba(189,157,255,0.4)" : undefined }}
                 >
-                  <span>📅</span>
+                  <span>🔗</span>
                   {selected ? `/${selected.slug}` : "Select link"}
                   <span className="text-xs" style={{ transform: dropdownOpen ? "rotate(180deg)" : "none", display: "inline-block", transition: "transform 0.2s" }}>▾</span>
                 </button>

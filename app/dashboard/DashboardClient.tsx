@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { Copy, Trash2, ChevronLeft, ChevronRight, Check, QrCode, Edit2 } from "lucide-react";
-import { getLinksCache, setLinksCache, invalidateLinksCache, CachedLink } from "@/lib/links-cache";
+import { getLinksCache, setLinksCache, CachedLink } from "@/lib/links-cache";
 import Link from "next/link";
 
 const CreateLinkModal = dynamic(() => import("./components/CreateLinkModal"), { ssr: false });
@@ -39,6 +39,10 @@ function formatClicks(n: number): string {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
   if (n >= 1000) return (n / 1000).toFixed(1) + "k";
   return String(n);
+}
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
 function getInitials(slug: string): string {
@@ -104,13 +108,20 @@ export default function DashboardClient({ user }: { user: User }) {
 
   const handleDelete = useCallback(async (id: string) => {
     const snapshot = links;
-    setLinks(prev => prev.filter(l => l.id !== id));
-    invalidateLinksCache();
+    setLinks(prev => {
+      const updated = prev.filter(l => l.id !== id);
+      setLinksCache(updated);
+      return updated;
+    });
     try {
       const res = await fetch(`/api/links/${id}`, { method: "DELETE" });
-      if (!res.ok) setLinks(snapshot);
+      if (!res.ok) {
+        setLinks(snapshot);
+        setLinksCache(snapshot);
+      }
     } catch {
       setLinks(snapshot);
+      setLinksCache(snapshot);
     }
   }, [links]);
 
@@ -143,8 +154,10 @@ export default function DashboardClient({ user }: { user: User }) {
         {/* Header */}
         <div className="flex items-end justify-between mb-8">
           <div>
-            <h1 className="text-[#f9f5f8] font-black text-5xl tracking-[-2.4px] leading-tight">Overview</h1>
-            <p className="text-[#adaaad] text-base mt-1">Manage your digital architecture and monitor reach.</p>
+            <h1 className="text-[#f9f5f8] font-black text-5xl tracking-[-2.4px] leading-tight">
+              {user.name ? `Hi, ${user.name.split(" ")[0]}` : "Overview"}
+            </h1>
+            <p className="text-[#adaaad] text-base mt-1">Manage your links and monitor reach.</p>
           </div>
           <button
             onClick={() => setShowModal(true)}
@@ -179,7 +192,6 @@ export default function DashboardClient({ user }: { user: User }) {
             <div className="text-[#f9f5f8] font-black text-4xl tracking-[-1.8px] leading-tight mb-6">
               {loading ? "—" : activeCount}
             </div>
-            {/* Avatar stack */}
             <div className="flex items-center">
               {avatarLinks.length > 0 ? (
                 <>
@@ -219,7 +231,6 @@ export default function DashboardClient({ user }: { user: User }) {
 
         {/* Recent Links */}
         <div>
-          {/* List header */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-6">
               <h2 className="text-[#f9f5f8] font-bold text-xl">Recent Links</h2>
@@ -239,18 +250,17 @@ export default function DashboardClient({ user }: { user: User }) {
                 ))}
               </div>
             </div>
-            <button 
-              onClick={() => setSortOrder(o => o === "Newest" ? "Oldest" : "Newest")} 
+            <button
+              onClick={() => setSortOrder(o => o === "Newest" ? "Oldest" : "Newest")}
               className="flex items-center gap-2 text-[#adaaad] text-sm font-medium hover:text-[#f9f5f8] transition-colors"
             >
               <svg width="10.5" height="7" viewBox="0 0 10.5 7" fill="none" style={{ transform: sortOrder === "Oldest" ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>
                 <path d="M4.08333 7V5.83333H6.41667V7H4.08333M1.75 4.08333V2.91667H8.75V4.08333H1.75M0 1.16667V0H10.5V1.16667H0" fill="currentColor"/>
               </svg>
-              Sort by Date: {sortOrder}
+              {sortOrder}
             </button>
           </div>
 
-          {/* Links list */}
           <div className="flex flex-col gap-3">
             {loading ? (
               Array.from({ length: 3 }).map((_, i) => (
@@ -263,99 +273,89 @@ export default function DashboardClient({ user }: { user: User }) {
                 </div>
               ))
             ) : paginated.length === 0 ? (
-              <div className="bg-[#19191c] border border-[rgba(72,71,74,0.1)] rounded-lg px-6 py-12 text-center text-[#adaaad] text-sm">
-                No links yet. Click &quot;Create New Link&quot; to get started.
+              <div className="bg-[#19191c] border border-[rgba(72,71,74,0.1)] rounded-lg px-6 py-12 text-center">
+                <p className="text-[#adaaad] text-sm mb-3">
+                  {filter !== "All" ? `No ${filter.toLowerCase()} links.` : "No links yet."}
+                </p>
+                {filter === "All" && (
+                  <button
+                    onClick={() => setShowModal(true)}
+                    className="text-[#bd9dff] text-sm font-bold hover:text-[#d4baff] transition-colors"
+                  >
+                    Create your first link →
+                  </button>
+                )}
               </div>
             ) : (
-              <>
-                {paginated.map((link) => {
-                  const status = getStatus(link);
-                  const shortUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/${link.slug}`;
-                  return (
-                    <Link
-                      key={link.id}
-                      href="/dashboard/analytics"
-                      className="bg-[#19191c] border border-[rgba(72,71,74,0.1)] rounded-lg px-6 py-5 flex items-center gap-4 hover:border-[rgba(189,157,255,0.15)] transition-colors"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3 mb-1">
-                          <span className="text-[#f9f5f8] font-bold text-base truncate">{link.slug}</span>
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold tracking-[0.5px] shrink-0 ${STATUS_STYLES[status]}`}>
-                            {status}
-                          </span>
-                        </div>
-                        <div className="text-[#bd9dff] text-sm mb-0.5 truncate">{shortUrl}</div>
-                        <div className="text-[rgba(173,170,173,0.4)] text-xs truncate">Target: {link.originalUrl}</div>
+              paginated.map((link) => {
+                const status = getStatus(link);
+                const shortUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/${link.slug}`;
+                return (
+                  <Link
+                    key={link.id}
+                    href={`/dashboard/analytics?slug=${link.slug}`}
+                    className="bg-[#19191c] border border-[rgba(72,71,74,0.1)] rounded-lg px-6 py-5 flex items-center gap-4 hover:border-[rgba(189,157,255,0.15)] transition-colors group"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3 mb-1">
+                        <span className="text-[#f9f5f8] font-bold text-base truncate">{link.slug}</span>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold tracking-[0.5px] shrink-0 ${STATUS_STYLES[status]}`}>
+                          {status}
+                        </span>
                       </div>
-                      <div className="flex gap-8 items-center shrink-0">
-                        <div className="text-right">
-                          <div className="text-[rgba(173,170,173,0.6)] text-[10px] font-bold tracking-[1px] uppercase mb-0.5">Clicks</div>
-                          <div className="text-[#f9f5f8] font-bold text-lg">{formatClicks(link._count?.clicks ?? 0)}</div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-[rgba(173,170,173,0.6)] text-[10px] font-bold tracking-[1px] uppercase mb-0.5">CTR</div>
-                          <div className="text-[#f9f5f8] font-bold text-lg">—</div>
-                        </div>
+                      <div className="text-[#bd9dff] text-sm mb-0.5 truncate">{shortUrl}</div>
+                      <div className="text-[rgba(173,170,173,0.4)] text-xs truncate">→ {link.originalUrl}</div>
+                    </div>
+                    <div className="flex gap-8 items-center shrink-0">
+                      <div className="text-right">
+                        <div className="text-[rgba(173,170,173,0.6)] text-[10px] font-bold tracking-[1px] uppercase mb-0.5">Clicks</div>
+                        <div className="text-[#f9f5f8] font-bold text-lg">{formatClicks(link._count?.clicks ?? 0)}</div>
                       </div>
-                      <div className="flex items-center gap-3 shrink-0 ml-2">
-                        <button
-                          onClick={(e) => { e.preventDefault(); handleCopy(link.slug); }}
-                          className="text-[#adaaad] hover:text-[#f9f5f8] transition-colors p-1"
-                          title="Copy"
-                        >
-                          {copied === link.slug ? <Check size={16} className="text-[#bd9dff]" /> : <Copy size={16} />}
-                        </button>
-                        <button
-                          onClick={(e) => { e.preventDefault(); setEditingLink(link); }}
-                          className="text-[#adaaad] hover:text-[#bd9dff] transition-colors p-1"
-                          title="Edit"
-                        >
-                          <Edit2 size={16} />
-                        </button>
-                        <button
-                          onClick={(e) => { e.preventDefault(); setQrModalSlug(link.slug); }}
-                          className="text-[#adaaad] hover:text-[#f9f5f8] transition-colors p-1"
-                          title="QR Code"
-                        >
-                          <QrCode size={16} />
-                        </button>
-                        <button
-                          onClick={(e) => { e.preventDefault(); handleDelete(link.id); }}
-                          className="text-[#adaaad] hover:text-[#ff6060] transition-colors p-1"
-                          title="Delete"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                      <div className="text-right hidden sm:block">
+                        <div className="text-[rgba(173,170,173,0.6)] text-[10px] font-bold tracking-[1px] uppercase mb-0.5">Created</div>
+                        <div className="text-[#adaaad] text-sm">{formatDate(link.createdAt)}</div>
                       </div>
-                    </Link>
-                  );
-                })}
-
-                {/* Skeleton row at bottom */}
-                <div className="bg-[#19191c] border border-[rgba(72,71,74,0.1)] rounded-lg px-6 py-5 flex items-center gap-4 opacity-40">
-                  <div className="flex-1">
-                    <div className="h-4 bg-[#2c2c2f] rounded w-48 mb-2" />
-                    <div className="h-3 bg-[#2c2c2f] rounded w-72" />
-                  </div>
-                  <div className="flex gap-4">
-                    <div className="h-8 bg-[#2c2c2f] rounded w-12" />
-                    <div className="h-8 bg-[#2c2c2f] rounded w-12" />
-                  </div>
-                  <div className="flex gap-2">
-                    <div className="h-7 bg-[#2c2c2f] rounded w-7" />
-                    <div className="h-7 bg-[#2c2c2f] rounded w-7" />
-                    <div className="h-7 bg-[#2c2c2f] rounded w-7" />
-                  </div>
-                </div>
-              </>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0 ml-2">
+                      <button
+                        onClick={(e) => { e.preventDefault(); handleCopy(link.slug); }}
+                        className="text-[#adaaad] hover:text-[#f9f5f8] transition-colors p-1"
+                        title="Copy short URL"
+                      >
+                        {copied === link.slug ? <Check size={16} className="text-[#bd9dff]" /> : <Copy size={16} />}
+                      </button>
+                      <button
+                        onClick={(e) => { e.preventDefault(); setEditingLink(link); }}
+                        className="text-[#adaaad] hover:text-[#bd9dff] transition-colors p-1"
+                        title="Edit"
+                      >
+                        <Edit2 size={16} />
+                      </button>
+                      <button
+                        onClick={(e) => { e.preventDefault(); setQrModalSlug(link.slug); }}
+                        className="text-[#adaaad] hover:text-[#f9f5f8] transition-colors p-1"
+                        title="QR Code"
+                      >
+                        <QrCode size={16} />
+                      </button>
+                      <button
+                        onClick={(e) => { e.preventDefault(); handleDelete(link.id); }}
+                        className="text-[#adaaad] hover:text-[#ff6060] transition-colors p-1"
+                        title="Delete"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </Link>
+                );
+              })
             )}
           </div>
 
-          {/* Pagination */}
-          {!loading && filtered.length > 0 && (
+          {!loading && filtered.length > PER_PAGE && (
             <div className="flex items-center justify-between mt-6">
               <p className="text-[#adaaad] text-sm">
-                Showing {Math.min((page - 1) * PER_PAGE + 1, filtered.length)}–{Math.min(page * PER_PAGE, filtered.length)} of {filtered.length} links
+                {Math.min((page - 1) * PER_PAGE + 1, filtered.length)}–{Math.min(page * PER_PAGE, filtered.length)} of {filtered.length} links
               </p>
               <div className="flex items-center gap-1">
                 <button
@@ -382,7 +382,7 @@ export default function DashboardClient({ user }: { user: User }) {
                 })}
                 {totalPages > 5 && (
                   <>
-                    <span className="text-[#adaaad] text-sm px-1">...</span>
+                    <span className="text-[#adaaad] text-sm px-1">…</span>
                     <button
                       onClick={() => setPage(totalPages)}
                       className="w-8 h-8 rounded-lg text-sm font-medium text-[#adaaad] hover:text-[#f9f5f8] transition-colors"
@@ -412,7 +412,7 @@ export default function DashboardClient({ user }: { user: User }) {
       )}
 
       {qrModalSlug && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setQrModalSlug(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80" onClick={() => setQrModalSlug(null)}>
           <div className="relative bg-[#19191c] p-8 rounded-3xl border border-[rgba(72,71,74,0.2)] flex flex-col items-center shadow-[0_40px_80px_0_rgba(189,157,255,0.12)]" onClick={e => e.stopPropagation()}>
             <h3 className="text-[#f9f5f8] font-black text-2xl tracking-tight mb-2">QR Code</h3>
             <p className="text-[#adaaad] text-xs mb-6 font-medium">/{qrModalSlug}</p>
@@ -420,7 +420,7 @@ export default function DashboardClient({ user }: { user: User }) {
               <img src={qrDataUrl} alt="QR code" className="w-48 h-48 rounded-2xl border border-[rgba(189,157,255,0.2)] mb-6" />
             ) : (
               <div className="w-48 h-48 rounded-2xl border border-[rgba(72,71,74,0.2)] bg-[#131315] flex items-center justify-center mb-6">
-                 <div className="w-6 h-6 border-2 border-[#bd9dff] border-t-transparent rounded-full animate-spin" />
+                <div className="w-6 h-6 border-2 border-[#bd9dff] border-t-transparent rounded-full animate-spin" />
               </div>
             )}
             <button
