@@ -93,7 +93,8 @@ export async function GET(
       weekGrowth, uniqueVisitors, avgClicksPerDay,
     });
   } catch (err) {
-    logger.error("GET /api/analytics/[slug] failed", { slug, error: err });
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.error("GET /api/analytics/[slug] failed", { slug, error: msg });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
