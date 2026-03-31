@@ -1,28 +1,10 @@
 /**
- * In-memory sliding window rate limiter.
- * Suitable for single-instance deployments (Vercel serverless has short-lived instances).
- * For distributed rate limiting, swap internals to use Vercel KV INCR+EXPIRE.
+ * Distributed rate limiter using Vercel KV (Upstash Redis) INCR+EXPIRE.
+ * Works correctly across multiple serverless function instances.
+ * Falls open (allows request) if KV is unavailable.
  */
 
-interface RateLimitEntry {
-  count: number;
-  resetAt: number;
-}
-
-const store = new Map<string, RateLimitEntry>();
-
-// Cleanup stale entries periodically
-const CLEANUP_INTERVAL_MS = 60_000;
-let lastCleanup = Date.now();
-
-function cleanup() {
-  const now = Date.now();
-  if (now - lastCleanup < CLEANUP_INTERVAL_MS) return;
-  lastCleanup = now;
-  for (const [key, entry] of store) {
-    if (now > entry.resetAt) store.delete(key);
-  }
-}
+import { kv } from "@/lib/kv";
 
 interface RateLimitOptions {
   /** Maximum number of requests allowed within the window */
@@ -41,41 +23,43 @@ interface RateLimitResult {
 
 /**
  * Check rate limit for a given action + identifier (e.g., userId or IP).
+ * Uses KV INCR+EXPIRE for distributed correctness on Vercel serverless.
  *
  * @example
- * const rl = rateLimit("create-link", userId, { maxRequests: 10, windowMs: 60_000 });
+ * const rl = await rateLimit("create-link", userId, { maxRequests: 10, windowMs: 60_000 });
  * if (!rl.allowed) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
  */
-export function rateLimit(
+export async function rateLimit(
   action: string,
   identifier: string,
   options: RateLimitOptions
-): RateLimitResult {
-  cleanup();
+): Promise<RateLimitResult> {
+  const key = `rl:${action}:${identifier}`;
+  const windowSec = Math.ceil(options.windowMs / 1000);
 
-  const key = `${action}:${identifier}`;
-  const now = Date.now();
-  const entry = store.get(key);
+  try {
+    const count = await kv.incr(key);
+    if (count === 1) {
+      // First request in this window — set TTL
+      await kv.expire(key, windowSec);
+    }
 
-  // No existing entry or window expired — fresh window
-  if (!entry || now > entry.resetAt) {
-    store.set(key, { count: 1, resetAt: now + options.windowMs });
-    return { allowed: true, remaining: options.maxRequests - 1, retryAfterMs: 0 };
-  }
+    if (count > options.maxRequests) {
+      const ttl = await kv.ttl(key);
+      return {
+        allowed: false,
+        remaining: 0,
+        retryAfterMs: Math.max(ttl, 0) * 1000,
+      };
+    }
 
-  // Within window
-  entry.count++;
-  if (entry.count > options.maxRequests) {
     return {
-      allowed: false,
-      remaining: 0,
-      retryAfterMs: entry.resetAt - now,
+      allowed: true,
+      remaining: options.maxRequests - count,
+      retryAfterMs: 0,
     };
+  } catch {
+    // KV unavailable — fail open so users are not blocked
+    return { allowed: true, remaining: options.maxRequests, retryAfterMs: 0 };
   }
-
-  return {
-    allowed: true,
-    remaining: options.maxRequests - entry.count,
-    retryAfterMs: 0,
-  };
 }

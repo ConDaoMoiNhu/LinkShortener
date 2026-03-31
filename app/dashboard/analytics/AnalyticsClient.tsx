@@ -78,10 +78,10 @@ export default function AnalyticsClient() {
       const data: CachedLink[] = await res.json();
       setLinks(data);
       setLinksCache(data);
-      if (data.length > 0 && !selected) setSelected(data[0]);
+      setSelected(prev => prev ?? data[0] ?? null);
     }
     setLoading(false);
-  }, [selected]);
+  }, []);
 
   useEffect(() => { fetchLinks(); }, [fetchLinks]);
 

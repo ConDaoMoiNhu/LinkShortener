@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import crypto from "crypto";
 import { db } from "@/lib/db";
 import { getSessionOrDev } from "@/lib/dev-session";
 
@@ -16,8 +17,9 @@ export async function getAuthUser(request: NextRequest) {
     if (!apiKey) return null;
 
     try {
+      const hashedKey = crypto.createHash("sha256").update(apiKey).digest("hex");
       const user = await db.user.findUnique({
-        where: { apiKey },
+        where: { apiKey: hashedKey },
         select: { id: true, name: true, email: true, image: true },
       });
 

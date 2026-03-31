@@ -24,7 +24,7 @@ export async function POST(
 
   // Rate limit by IP + slug (1 click per 10 seconds per slug per IP)
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-  const rl = rateLimit("click", `${ip}:${slug}`, { maxRequests: 1, windowMs: 10_000 });
+  const rl = await rateLimit("click", `${ip}:${slug}`, { maxRequests: 1, windowMs: 10_000 });
   if (!rl.allowed) {
     return new NextResponse(null, { status: 429 });
   }

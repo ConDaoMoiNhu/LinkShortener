@@ -134,6 +134,7 @@ export default function DashboardLayout({
               type="text"
               placeholder="Search links..."
               className="bg-transparent text-sm text-[#f9f5f8] placeholder-[rgba(173,170,173,0.5)] outline-none flex-1"
+              onKeyDown={handleSearch}
             />
           </div>
           <div className="flex items-center gap-4">

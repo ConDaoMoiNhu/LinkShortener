@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const rl = rateLimit("qr", session.user.id, { maxRequests: 20, windowMs: 60_000 });
+  const rl = await rateLimit("qr", session.user.id, { maxRequests: 20, windowMs: 60_000 });
   if (!rl.allowed) {
     return NextResponse.json(
       { error: "Quá nhiều request. Vui lòng thử lại sau." },

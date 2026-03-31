@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const rl = rateLimit("create-link", session.user.id, { maxRequests: 10, windowMs: 60_000 });
+    const rl = await rateLimit("create-link", session.user.id, { maxRequests: 10, windowMs: 60_000 });
     if (!rl.allowed) {
       return NextResponse.json(
         { error: "Quá nhiều request. Vui lòng thử lại sau." },

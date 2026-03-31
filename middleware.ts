@@ -51,9 +51,9 @@ export default async function middleware(request: NextRequest) {
           const originalUrl: string | null = data?.result ?? null;
           // Validate URL from KV to prevent open redirect (only allow http/https)
           if (originalUrl && /^https?:\/\//i.test(originalUrl)) {
-            // Track click before redirecting (await ensures it completes on Edge)
+            // Fire-and-forget click tracking — don't block the redirect
             const origin = request.nextUrl.origin;
-            await fetch(`${origin}/api/analytics/click/${encodedSlug}`, {
+            fetch(`${origin}/api/analytics/click/${encodedSlug}`, {
               method: "POST",
               headers: {
                 "user-agent": request.headers.get("user-agent") ?? "",
