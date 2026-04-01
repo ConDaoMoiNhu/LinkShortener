@@ -7,6 +7,7 @@ import {
   ResponsiveContainer, Cell,
 } from "recharts";
 import { getLinksCache, setLinksCache, CachedLink } from "@/lib/links-cache";
+import { BarChart2 as BarChartIcon, Link2, Download, Share2, Check } from "lucide-react";
 
 interface AnalyticsData {
   totalClicks: number;
@@ -20,10 +21,10 @@ interface AnalyticsData {
 }
 
 const REFERER_ICONS: Record<string, string> = {
-  "instagram.com": "📸", "t.co": "🐦", "twitter.com": "🐦", "x.com": "🐦",
-  "facebook.com": "👤", "fb.com": "👤", "youtube.com": "▶️", "tiktok.com": "🎵",
-  "linkedin.com": "💼", "reddit.com": "🔸", "github.com": "⚙️",
-  "direct": "🔗",
+  "instagram.com": "IG", "t.co": "TW", "twitter.com": "TW", "x.com": "X",
+  "facebook.com": "FB", "fb.com": "FB", "youtube.com": "YT", "tiktok.com": "TK",
+  "linkedin.com": "LI", "reddit.com": "RD", "github.com": "GH",
+  "direct": "—",
 };
 
 type TimeRange = "30D" | "7D" | "24H";
@@ -182,7 +183,7 @@ export default function AnalyticsClient() {
       <div className="p-8 max-w-[1100px]">
         <h1 className="text-[#f9f5f8] font-black text-5xl tracking-[-2.4px] mb-8">Analytics</h1>
         <div className="flex flex-col items-center justify-center py-24 gap-5 bg-[#19191c] rounded-2xl border border-[rgba(72,71,74,0.1)]">
-          <div className="text-5xl opacity-30">📊</div>
+          <BarChartIcon size={48} className="opacity-20 text-[#adaaad]" />
           <div className="text-center">
             <p className="text-[#f9f5f8] font-bold text-lg mb-2">No data yet</p>
             <p className="text-[#adaaad] text-sm max-w-xs">
@@ -220,7 +221,7 @@ export default function AnalyticsClient() {
                   className="flex items-center gap-2 px-5 py-2.5 bg-[#19191c] border border-[rgba(72,71,74,0.2)] rounded-lg text-[#adaaad] text-sm font-bold hover:text-[#f9f5f8] transition-colors"
                   style={{ borderColor: dropdownOpen ? "rgba(189,157,255,0.4)" : undefined }}
                 >
-                  <span>🔗</span>
+                  <Link2 size={14} />
                   {selected ? `/${selected.slug}` : "Select link"}
                   <span className="text-xs" style={{ transform: dropdownOpen ? "rotate(180deg)" : "none", display: "inline-block", transition: "transform 0.2s" }}>▾</span>
                 </button>
@@ -261,7 +262,7 @@ export default function AnalyticsClient() {
               }}
               className="flex items-center gap-2 px-5 py-2.5 bg-[#19191c] border border-[rgba(72,71,74,0.2)] rounded-lg text-[#adaaad] text-sm font-bold hover:text-[#f9f5f8] transition-colors"
             >
-              <span>⬇</span> Export
+              <Download size={14} /> Export
             </button>
             <button
               onClick={() => {
@@ -274,7 +275,7 @@ export default function AnalyticsClient() {
               className="px-6 py-2.5 rounded-lg font-bold text-sm text-[#3c0089] shadow-[0_10px_20px_0_rgba(189,157,255,0.2)] hover:opacity-90 transition-all flex items-center justify-center min-w-[140px]"
               style={{ backgroundImage: "linear-gradient(163deg, rgb(189,157,255) 0%, rgb(138,76,252) 100%)" }}
             >
-              {shareCopied ? "✓ Copied!" : "Share Analytics"}
+              {shareCopied ? <><Check size={14} /> Copied!</> : <><Share2 size={14} /> Share Analytics</>}
             </button>
           </div>
         </div>
@@ -411,7 +412,7 @@ export default function AnalyticsClient() {
           <p className="text-[#adaaad] text-sm mb-6">Sources driving the most traffic</p>
           {visibleReferrers.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 gap-3">
-              <div className="text-3xl opacity-30">🔗</div>
+              <Link2 size={28} className="opacity-20 text-[#adaaad]" />
               <p className="text-[rgba(173,170,173,0.4)] text-sm text-center">No referrer data yet.</p>
             </div>
           ) : (

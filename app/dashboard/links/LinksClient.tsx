@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import dynamic from "next/dynamic";
-import { Copy, Trash2, ChevronLeft, ChevronRight, Check, Search, ExternalLink, QrCode, BarChart2 } from "lucide-react";
+import { Copy, Trash2, ChevronLeft, ChevronRight, Check, Search, ExternalLink, QrCode, BarChart2, X } from "lucide-react";
 import { getLinksCache, setLinksCache, CachedLink } from "@/lib/links-cache";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -44,6 +44,7 @@ export default function LinksClient() {
   const [search, setSearch] = useState(searchParams.get("search") || "");
   const [searchInput, setSearchInput] = useState(searchParams.get("search") || "");
   const [copied, setCopied] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -88,7 +89,7 @@ export default function LinksClient() {
   };
 
   const handleDelete = useCallback(async (id: string) => {
-    if (!confirm("Delete this link?")) return;
+    setConfirmDeleteId(null);
     const snapshot = links;
     setLinks(prev => {
       const updated = prev.filter(l => l.id !== id);
@@ -253,19 +254,37 @@ export default function LinksClient() {
                       <QrCode size={16} />
                     </button>
                     <Link
-                      href="/dashboard/analytics"
+                      href={`/dashboard/analytics?slug=${link.slug}`}
                       className="text-[#adaaad] hover:text-[#bd9dff] transition-colors p-1"
                       title="View analytics"
                     >
                       <BarChart2 size={16} />
                     </Link>
-                    <button
-                      onClick={() => handleDelete(link.id)}
-                      className="text-[#adaaad] hover:text-[#ff6060] transition-colors p-1"
-                      title="Delete link"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    {confirmDeleteId === link.id ? (
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => handleDelete(link.id)}
+                          className="px-2.5 py-1 rounded-lg text-[#ff6060] bg-[rgba(255,96,96,0.1)] hover:bg-[rgba(255,96,96,0.2)] font-bold text-[11px] transition-colors"
+                        >
+                          Delete
+                        </button>
+                        <button
+                          onClick={() => setConfirmDeleteId(null)}
+                          className="text-[#adaaad] hover:text-[#f9f5f8] transition-colors p-1"
+                          title="Cancel"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmDeleteId(link.id)}
+                        className="text-[#adaaad] hover:text-[#ff6060] transition-colors p-1"
+                        title="Delete link"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
                   </div>
                 </div>
               );

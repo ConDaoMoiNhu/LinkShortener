@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import dynamic from "next/dynamic";
+import { Copy, Check, Pencil, Trash2, X } from "lucide-react";
 import type { CachedLink } from "@/lib/links-cache";
 
 const EditLinkModal = dynamic(() => import("./EditLinkModal"), { ssr: false });
@@ -34,7 +35,6 @@ function StatusBadge({ expiresAt }: { expiresAt?: string | null }) {
   };
 
   if (!expiresAt) {
-    // No expiry → always Active
     return (
       <span style={{
         ...badgeBase,
@@ -50,7 +50,6 @@ function StatusBadge({ expiresAt }: { expiresAt?: string | null }) {
   const now = new Date();
 
   if (expDate < now) {
-    // Past → Expired
     return (
       <span style={{
         ...badgeBase,
@@ -62,7 +61,6 @@ function StatusBadge({ expiresAt }: { expiresAt?: string | null }) {
     );
   }
 
-  // Future expiry → Active with tooltip
   const formatted = expDate.toLocaleDateString("vi-VN", {
     day: "2-digit", month: "2-digit", year: "numeric",
   });
@@ -86,6 +84,7 @@ export default function LinkCard({ link, baseUrl, onDeleted, onUpdated }: Props)
   const [copied, setCopied] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [editLink, setEditLink] = useState<LinkItem | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const shortUrl = `${baseUrl}/${link.slug}`;
   const domain = baseUrl.replace(/^https?:\/\//, "");
@@ -97,7 +96,6 @@ export default function LinkCard({ link, baseUrl, onDeleted, onUpdated }: Props)
   }
 
   async function handleDelete() {
-    if (!confirm("Xoá link này?")) return;
     await fetch(`/api/links/${link.id}`, { method: "DELETE" });
     onDeleted();
   }
@@ -105,6 +103,13 @@ export default function LinkCard({ link, baseUrl, onDeleted, onUpdated }: Props)
   const date = new Date(link.createdAt).toLocaleDateString("vi-VN", {
     day: "2-digit", month: "2-digit", year: "numeric",
   });
+
+  const btnBase: React.CSSProperties = {
+    width: "40px", height: "40px", borderRadius: "10px",
+    background: "#1f1f22", border: "none", cursor: "pointer",
+    display: "flex", alignItems: "center", justifyContent: "center",
+    transition: "all 0.2s",
+  };
 
   return (
     <div
@@ -118,7 +123,7 @@ export default function LinkCard({ link, baseUrl, onDeleted, onUpdated }: Props)
         cursor: "default",
       }}
       onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onMouseLeave={() => { setHovered(false); setConfirmDelete(false); }}
     >
       {/* URL info */}
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -174,21 +179,66 @@ export default function LinkCard({ link, baseUrl, onDeleted, onUpdated }: Props)
 
       {/* Actions */}
       <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
-        <button onClick={handleCopy} title="Copy link" style={{ width: "36px", height: "36px", borderRadius: "10px", background: "#1f1f22", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: copied ? "#bd9dff" : "rgba(173,170,173,0.6)", transition: "all 0.2s", fontSize: "15px" }}
+        <button
+          onClick={handleCopy}
+          title="Copy link"
+          style={{
+            ...btnBase,
+            color: copied ? "#bd9dff" : "rgba(173,170,173,0.6)",
+          }}
           onMouseEnter={e => { e.currentTarget.style.background = "#2c2c2f"; e.currentTarget.style.color = "#bd9dff"; }}
-          onMouseLeave={e => { e.currentTarget.style.background = "#1f1f22"; e.currentTarget.style.color = copied ? "#bd9dff" : "rgba(173,170,173,0.6)"; }}>
-          {copied ? "✓" : "⎘"}
+          onMouseLeave={e => { e.currentTarget.style.background = "#1f1f22"; e.currentTarget.style.color = copied ? "#bd9dff" : "rgba(173,170,173,0.6)"; }}
+        >
+          {copied ? <Check size={15} /> : <Copy size={15} />}
         </button>
-        <button onClick={() => setEditLink(link)} title="Edit link" style={{ width: "36px", height: "36px", borderRadius: "10px", background: "#1f1f22", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(173,170,173,0.6)", transition: "all 0.2s", fontSize: "14px", opacity: hovered ? 1 : 0 }}
+        <button
+          onClick={() => setEditLink(link)}
+          title="Edit link"
+          style={{
+            ...btnBase,
+            color: "rgba(173,170,173,0.6)",
+            opacity: hovered ? 1 : 0,
+          }}
           onMouseEnter={e => { e.currentTarget.style.background = "rgba(189,157,255,0.1)"; e.currentTarget.style.color = "#bd9dff"; }}
-          onMouseLeave={e => { e.currentTarget.style.background = "#1f1f22"; e.currentTarget.style.color = "rgba(173,170,173,0.6)"; }}>
-          ✎
+          onMouseLeave={e => { e.currentTarget.style.background = "#1f1f22"; e.currentTarget.style.color = "rgba(173,170,173,0.6)"; }}
+        >
+          <Pencil size={14} />
         </button>
-        <button onClick={handleDelete} title="Xoá link" style={{ width: "36px", height: "36px", borderRadius: "10px", background: "#1f1f22", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(173,170,173,0.6)", transition: "all 0.2s", fontSize: "14px", opacity: hovered ? 1 : 0 }}
-          onMouseEnter={e => { e.currentTarget.style.background = "rgba(167,1,56,0.15)"; e.currentTarget.style.color = "#ff6e84"; }}
-          onMouseLeave={e => { e.currentTarget.style.background = "#1f1f22"; e.currentTarget.style.color = "rgba(173,170,173,0.6)"; }}>
-          ✕
-        </button>
+
+        {confirmDelete ? (
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <button
+              onClick={handleDelete}
+              title="Confirm delete"
+              style={{ ...btnBase, background: "rgba(167,1,56,0.2)", color: "#ff6e84", width: "auto", padding: "0 10px", fontSize: "11px", fontWeight: 700 }}
+            >
+              Delete
+            </button>
+            <button
+              onClick={() => setConfirmDelete(false)}
+              title="Cancel"
+              style={{ ...btnBase, color: "rgba(173,170,173,0.6)" }}
+              onMouseEnter={e => { e.currentTarget.style.background = "#2c2c2f"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "#1f1f22"; }}
+            >
+              <X size={14} />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setConfirmDelete(true)}
+            title="Delete link"
+            style={{
+              ...btnBase,
+              color: "rgba(173,170,173,0.6)",
+              opacity: hovered ? 1 : 0,
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = "rgba(167,1,56,0.15)"; e.currentTarget.style.color = "#ff6e84"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "#1f1f22"; e.currentTarget.style.color = "rgba(173,170,173,0.6)"; }}
+          >
+            <Trash2 size={14} />
+          </button>
+        )}
       </div>
 
       {editLink && (

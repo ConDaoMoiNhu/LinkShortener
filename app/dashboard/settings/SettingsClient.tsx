@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Eye, EyeOff, Copy, RefreshCw, BookOpen, Shield, MessageCircle, Check, Pencil } from "lucide-react";
+import { Eye, EyeOff, Copy, RefreshCw, BookOpen, Shield, MessageCircle, Check, Pencil, X } from "lucide-react";
 import { signOut } from "next-auth/react";
 
 interface User {
@@ -65,6 +65,8 @@ export default function SettingsClient({ user, apiKey }: { user: User; apiKey: s
   const [currentKey, setCurrentKey] = useState(apiKey);
 
   // Profile state
+  const [confirmRegenerate, setConfirmRegenerate] = useState(false);
+  const [confirmPurge, setConfirmPurge] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [name, setName] = useState(user.name ?? "");
   const [location, setLocation] = useState(user.location ?? "");
@@ -84,7 +86,7 @@ export default function SettingsClient({ user, apiKey }: { user: User; apiKey: s
   };
 
   const handleRegenerate = async () => {
-    if (!confirm("Regenerating the key will immediately break any apps using the old key. Continue?")) return;
+    setConfirmRegenerate(false);
     setRegenerating(true);
     try {
       const res = await fetch("/api/user/key", { method: "POST" });
@@ -132,7 +134,7 @@ export default function SettingsClient({ user, apiKey }: { user: User; apiKey: s
   };
 
   const handlePurge = async () => {
-    if (!confirm("Delete all links? This action cannot be undone.")) return;
+    setConfirmPurge(false);
     setDeleting(true);
     await fetch("/api/links", { method: "DELETE" }).catch(() => {});
     setDeleting(false);
@@ -266,14 +268,33 @@ export default function SettingsClient({ user, apiKey }: { user: User; apiKey: s
                 <h2 className="text-[#f9f5f8] font-bold text-xl">API Credentials</h2>
                 <p className="text-[#adaaad] text-sm mt-0.5">Use these keys to integrate SnapLink with your apps.</p>
               </div>
-              <button
-                onClick={handleRegenerate}
-                disabled={regenerating}
-                className="flex items-center gap-1.5 text-[#bd9dff] font-bold text-sm hover:text-[#d4baff] transition-colors disabled:opacity-60"
-              >
-                <RefreshCw size={14} className={regenerating ? "animate-spin" : ""} />
-                {regenerating ? "Regenerating…" : regenerated ? "Regenerated!" : "Regenerate"}
-              </button>
+              {confirmRegenerate ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-[#adaaad] text-xs">Old key will break. Sure?</span>
+                  <button
+                    onClick={handleRegenerate}
+                    disabled={regenerating}
+                    className="px-3 py-1.5 rounded-lg text-[#ff6060] bg-[rgba(255,96,96,0.1)] hover:bg-[rgba(255,96,96,0.2)] font-bold text-xs transition-colors disabled:opacity-50"
+                  >
+                    Yes, regenerate
+                  </button>
+                  <button
+                    onClick={() => setConfirmRegenerate(false)}
+                    className="text-[#adaaad] hover:text-[#f9f5f8] transition-colors"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setConfirmRegenerate(true)}
+                  disabled={regenerating}
+                  className="flex items-center gap-1.5 text-[#bd9dff] font-bold text-sm hover:text-[#d4baff] transition-colors disabled:opacity-60"
+                >
+                  <RefreshCw size={14} className={regenerating ? "animate-spin" : ""} />
+                  {regenerating ? "Regenerating…" : regenerated ? "Regenerated!" : "Regenerate"}
+                </button>
+              )}
             </div>
 
             <div>
@@ -332,13 +353,31 @@ export default function SettingsClient({ user, apiKey }: { user: User; apiKey: s
                   <div className="text-[#f9f5f8] font-bold text-sm">Purge Link History</div>
                   <div className="text-[#adaaad] text-xs mt-0.5">Delete all historical click data and analytics. Links remain active.</div>
                 </div>
-                <button
-                  onClick={handlePurge}
-                  disabled={deleting}
-                  className="text-[#ff6060] font-bold text-sm hover:text-[#ff8080] transition-colors disabled:opacity-50"
-                >
-                  {deleting ? "Deleting…" : "Purge Data"}
-                </button>
+                {confirmPurge ? (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handlePurge}
+                      disabled={deleting}
+                      className="px-3 py-1.5 rounded-lg text-[#ff6060] bg-[rgba(255,96,96,0.1)] hover:bg-[rgba(255,96,96,0.2)] font-bold text-xs transition-colors disabled:opacity-50"
+                    >
+                      {deleting ? "Deleting…" : "Confirm purge"}
+                    </button>
+                    <button
+                      onClick={() => setConfirmPurge(false)}
+                      className="text-[#adaaad] hover:text-[#f9f5f8] transition-colors"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setConfirmPurge(true)}
+                    disabled={deleting}
+                    className="text-[#ff6060] font-bold text-sm hover:text-[#ff8080] transition-colors disabled:opacity-50"
+                  >
+                    Purge Data
+                  </button>
+                )}
               </div>
               <div className="flex items-center justify-between">
                 <div>
