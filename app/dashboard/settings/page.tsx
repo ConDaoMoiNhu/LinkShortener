@@ -39,8 +39,24 @@ async function getOrCreateApiKey(userId: string): Promise<string> {
 
 export default async function SettingsPage() {
   if (process.env.NODE_ENV === "development") {
-    const apiKey = await getOrCreateApiKey(DEV_USER.id);
-    return <SettingsClient user={DEV_USER} apiKey={apiKey} />;
+    const [apiKey, dbUser] = await Promise.all([
+      getOrCreateApiKey(DEV_USER.id),
+      db.user.findUnique({
+        where: { id: DEV_USER.id },
+        select: { name: true, location: true, timezone: true },
+      }),
+    ]);
+    return (
+      <SettingsClient
+        user={{
+          ...DEV_USER,
+          name: dbUser?.name ?? DEV_USER.name,
+          location: dbUser?.location ?? null,
+          timezone: dbUser?.timezone ?? null,
+        }}
+        apiKey={apiKey}
+      />
+    );
   }
   await headers();
   const session = await getServerSession(authOptions);
@@ -50,7 +66,7 @@ export default async function SettingsPage() {
     getOrCreateApiKey(session.user.id),
     db.user.findUnique({
       where: { id: session.user.id },
-      select: { location: true, timezone: true },
+      select: { name: true, location: true, timezone: true },
     }),
   ]);
 
@@ -58,6 +74,7 @@ export default async function SettingsPage() {
     <SettingsClient
       user={{
         ...session.user,
+        name: dbUser?.name ?? session.user.name,
         location: dbUser?.location ?? null,
         timezone: dbUser?.timezone ?? null,
       }}

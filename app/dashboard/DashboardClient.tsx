@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import dynamic from "next/dynamic";
-import { Copy, Trash2, ChevronLeft, ChevronRight, Check, QrCode, Edit2 } from "lucide-react";
+import { Copy, Trash2, ChevronLeft, ChevronRight, Check, QrCode, Edit2, X } from "lucide-react";
 import { getLinksCache, setLinksCache, CachedLink } from "@/lib/links-cache";
 import Link from "next/link";
 
@@ -60,6 +60,7 @@ export default function DashboardClient({ user }: { user: User }) {
   const [qrModalSlug, setQrModalSlug] = useState<string | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<"Newest" | "Oldest">("Newest");
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const PER_PAGE = 5;
 
   useEffect(() => {
@@ -338,13 +339,30 @@ export default function DashboardClient({ user }: { user: User }) {
                       >
                         <QrCode size={16} />
                       </button>
-                      <button
-                        onClick={(e) => { e.preventDefault(); handleDelete(link.id); }}
-                        className="text-[#adaaad] hover:text-[#ff6060] transition-colors p-1"
-                        title="Delete"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                      {confirmDeleteId === link.id ? (
+                        <div className="flex items-center gap-1" onClick={e => e.preventDefault()}>
+                          <button
+                            onClick={(e) => { e.preventDefault(); handleDelete(link.id); }}
+                            className="px-2.5 py-1 rounded-lg text-[#ff6060] bg-[rgba(255,96,96,0.1)] hover:bg-[rgba(255,96,96,0.2)] font-bold text-[11px] transition-colors"
+                          >
+                            Delete
+                          </button>
+                          <button
+                            onClick={(e) => { e.preventDefault(); setConfirmDeleteId(null); }}
+                            className="text-[#adaaad] hover:text-[#f9f5f8] transition-colors p-1"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={(e) => { e.preventDefault(); setConfirmDeleteId(link.id); }}
+                          className="text-[#adaaad] hover:text-[#ff6060] transition-colors p-1"
+                          title="Delete"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
                     </div>
                   </Link>
                 );
