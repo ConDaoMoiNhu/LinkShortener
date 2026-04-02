@@ -48,6 +48,13 @@ export default function LinksClient() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    const q = searchParams.get("search") || "";
+    setSearch(q);
+    setSearchInput(q);
+    setPage(1);
+  }, [searchParams]);
+
+  useEffect(() => {
     if (qrModalSlug) {
       setQrDataUrl(null);
       const shortUrl = `${window.location.origin}/${qrModalSlug}`;

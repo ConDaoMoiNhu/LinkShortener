@@ -196,7 +196,7 @@ export default function SettingsClient({ user, apiKey }: { user: User; apiKey: s
                       value={name}
                       onChange={e => setName(e.target.value)}
                       onBlur={() => setEditingName(false)}
-                      onKeyDown={e => { if (e.key === "Enter") { setEditingName(false); } if (e.key === "Escape") { setName(user.name ?? ""); setEditingName(false); } }}
+                      onKeyDown={e => { e.stopPropagation(); if (e.key === "Enter") { setEditingName(false); } if (e.key === "Escape") { setName(user.name ?? ""); setEditingName(false); } }}
                       className="w-full bg-black border border-[rgba(189,157,255,0.4)] rounded-lg px-4 py-3 text-[#f9f5f8] text-sm outline-none"
                       autoFocus
                     />
